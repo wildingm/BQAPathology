@@ -175,7 +175,7 @@ while(RepeatExtract == "YES") {
   if (selector == "Path_national_code") {
     allinfo<-lapply(filessrc,DataExtractAll)
     allinfo<-bind_rows(allinfo)
-    pathlook<-read.csv("Pathologist Codes BQA.csv",stringsAsFactors = FALSE)
+    pathlook<-Pathologists
     pathtable<-data.frame("NBSS_national_code"=unique(allinfo$Path_national_code),"NBSS_local_name"=NA,"National_P_code_(if_known)"=NA,"National_name_(if_known)"=NA,stringsAsFactors = FALSE)
     for (i in 1:nrow(pathtable)){
       pathtable$NBSS_local_name[i]<-allinfo$Path_local_name[match(pathtable$NBSS_national_code[i],allinfo$Path_national_code)]
