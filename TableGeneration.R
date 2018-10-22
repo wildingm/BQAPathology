@@ -6,6 +6,7 @@ options(warn = -1)
 source("Pathologist lookup.R")
 
 library(tools)
+library(ggplot2)
 
 percent<-function(x,digits=2,format="f") {
   paste0(formatC(100*x,format=format,digits=digits),"%")
@@ -244,3 +245,26 @@ while(RepeatExtract == "YES") {
 }
 rm(Pathologists)
 options(warn = oldw)
+
+###produces proportions for calculated stats
+calcframe<-numFrame/denomFrame
+calcframe[is.na(calcframe)]<-0
+###produces full stats table as values
+chartFrame<-rbind(casesFrame,calcframe)
+chartFrame<-cbind("BQA_Measure"=allNames,chartFrame)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
+###produces full stats table as values
+propFrame<-casesFrame
+for (i in 9:11) {propFrame[i,]<-propFrame[i,]/propFrame[12,]}
+for (i in 4:6) {propFrame[i,]<-propFrame[i,]/propFrame[7,]}
+for (i in c(2,3,7,8,12)) {propFrame[i,]<-propFrame[i,]/propFrame[1,]}
+propFrame[1,]<-propFrame[1,]/propFrame[1,]
+propFrame[is.na(propFrame)]<-0
+chartpropframe<-rbind(propFrame,calcframe)
+chartpropframe<-cbind("BQA_Measure"=allNames,chartpropframe)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
+###produces charts for the 
+chart_data<-melt(chartpropframe[2:6,],id.var="BQA_Measure")
+BCatPlot<-ggplot(chart_data, aes(y=value, x = variable,fill = BQA_Measure)) + geom_bar(stat="identity",position = "stack") + theme_minimal() + theme(axis.text.x = element_text(angle = 45)) + scale_fill_brewer(palette="Set1") + theme(legend.position="bottom") + labs(title = paste("Proportion of tests broken down by B category \n grouped by", selector), x = selector) + scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),labels = c("100%","80%","60%","40%","20%","0%"))
+chart_data<-melt(chartpropframe[7:9,],id.var="BQA_Measure")
+B5Plot<-ggplot(chart_data, aes(y=value, x = variable,fill = BQA_Measure)) + geom_bar(stat="identity",position = "stack") + theme_minimal() + theme(axis.text.x = element_text(angle = 45)) + scale_fill_brewer(palette="Set1") + theme(legend.position="bottom") + labs(title = paste("Proportion of B5 tests broken down by B5 sub-category \n grouped by", selector), x = selector, y = "Proportion of total") + scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),labels = c("100%","80%","60%","40%","20%","0%"))
+chart_data<-melt(chartpropframe[10:12,],id.var="BQA_Measure")
+B3Plot<-ggplot(chart_data, aes(y=value, x = variable,fill = BQA_Measure)) + geom_bar(stat="identity",position = "stack") + theme_minimal() + theme(axis.text.x = element_text(angle = 45)) + scale_fill_brewer(palette="Set1") + theme(legend.position="bottom") + labs(title = paste("Proportion of B3 tests broken down by B3 sub-category \n grouped by", selector), x = selector, y = "Proportion of total") + scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),labels = c("100%","80%","60%","40%","20%","0%"))
