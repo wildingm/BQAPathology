@@ -30,7 +30,7 @@ FindPathCode <- function(NationalCode) {
 
 AssignCode <- function(GMCCode) {
   PCodes<-xl.read.file("\\\\phe.gov.uk\\Health & Wellbeing\\HAW\\Quality Assurance\\QA SHARED\\Breast\\Data\\National pathology audit 2013-16\\CONFIDENTIAL P-Code look up\\P_Codes.xlsx",password = "M4r5hma11oW")
-  PCodesUnused<-filter(PCodes,PCodes$Used != "YES")
+  PCodesUnused<-filter(PCodes,is.na(PCodes$Used))
   Pathologists<-xl.read.file("\\\\phe.gov.uk\\Health & Wellbeing\\HAW\\Quality Assurance\\QA SHARED\\Breast\\Data\\National pathology audit 2013-16\\CONFIDENTIAL P-Code look up\\Pathologist Codes BQA.xlsx",password = "M4r5hma11oW")
   Pathologists<-filter(Pathologists,Pathologists$P.Code != "") ### removes empty rows
   ###Select a code
@@ -41,8 +41,8 @@ AssignCode <- function(GMCCode) {
     ###Add GMC code and P.Code to Pathologists data frame and YES to PCode data frame
     Pathologists<-rbind(Pathologists,c(NA,newcode,NA,GMCCode,NA,NA,NA))
     PCodes[PCodes$P.Code==newcode,2]<-"YES"
-    xl.save.file(Pathologists, file = "Pathologist Codes BQA.xlsx", row.names = FALSE, password = "M4r5hma11oW")
-    xl.save.file(PCodes, file = "P_Codes.xlsx", row.names = FALSE, password = "M4r5hma11oW")
+    xl.save.file(Pathologists, "\\\\phe.gov.uk\\Health & Wellbeing\\HAW\\Quality Assurance\\QA SHARED\\Breast\\Data\\National pathology audit 2013-16\\CONFIDENTIAL P-Code look up\\Pathologist Codes BQA.xlsx", row.names = FALSE, password = "M4r5hma11oW")
+    xl.save.file(PCodes, "\\\\phe.gov.uk\\Health & Wellbeing\\HAW\\Quality Assurance\\QA SHARED\\Breast\\Data\\National pathology audit 2013-16\\CONFIDENTIAL P-Code look up\\P_Codes.xlsx", row.names = FALSE, password = "M4r5hma11oW")
     print(paste("GMC code",GMCCode,"has been added to the list of pathologists with code", newcode))
   }
   newcode
