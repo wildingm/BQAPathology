@@ -263,8 +263,22 @@ chartpropframe<-rbind(propFrame,calcframe)
 chartpropframe<-cbind("BQA_Measure"=allNames,chartpropframe)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
 ###produces charts for the 
 chart_data<-melt(chartpropframe[2:6,],id.var="BQA_Measure")
-BCatPlot<-ggplot(chart_data, aes(y=value, x = variable,fill = BQA_Measure)) + geom_bar(stat="identity",position = "stack") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 0.95), panel.grid.major.x = element_blank(), panel.grid.major.y = element_line( size=.1, color="dark grey")) + scale_fill_brewer(palette="Set1") + theme(legend.position="bottom") + labs(title = paste("Proportion of tests broken down by B category \n grouped by", selector), x = selector) + scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),labels = c("100%","80%","60%","40%","20%","0%"))
+BCatPlot<-ggplot(chart_data, aes(y=value, x = variable,fill = BQA_Measure)) + geom_bar(stat="identity",position = "stack") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 0.95), panel.grid.major.x = element_blank(), panel.grid.major.y = element_line( size=.1, color="dark grey")) + scale_fill_brewer(palette="Set1") + labs(title = paste("Proportion of tests broken down by B category \n grouped by", selector), x = selector) + scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),labels = c("100%","80%","60%","40%","20%","0%"))
 chart_data<-melt(chartpropframe[7:9,],id.var="BQA_Measure")
-B5Plot<-ggplot(chart_data, aes(y=value, x = variable,fill = BQA_Measure)) + geom_bar(stat="identity",position = "stack") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 0.95), panel.grid.major.x = element_blank(), panel.grid.major.y = element_line( size=.1, color="dark grey")) + scale_fill_brewer(palette="Set1") + theme(legend.position="bottom") + labs(title = paste("Proportion of B5 tests broken down by B5 sub-category \n grouped by", selector), x = selector, y = "Proportion of total") + scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),labels = c("100%","80%","60%","40%","20%","0%"))
+B5Plot<-ggplot(chart_data, aes(y=value, x = variable,fill = BQA_Measure)) + geom_bar(stat="identity",position = "stack") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 0.95), panel.grid.major.x = element_blank(), panel.grid.major.y = element_line( size=.1, color="dark grey")) + scale_fill_brewer(palette="Set1") + labs(title = paste("Proportion of B5 tests broken down by B5 sub-category \n grouped by", selector), x = selector, y = "Proportion of total") + scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),labels = c("100%","80%","60%","40%","20%","0%"))
 chart_data<-melt(chartpropframe[10:12,],id.var="BQA_Measure")
-B3Plot<-ggplot(chart_data, aes(y=value, x = variable,fill = BQA_Measure)) + geom_bar(stat="identity",position = "stack") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 0.95), panel.grid.major.x = element_blank(), panel.grid.major.y = element_line( size=.1, color="dark grey")) + scale_fill_brewer(palette="Set1") + theme(legend.position="bottom") + labs(title = paste("Proportion of B3 tests broken down by B3 sub-category \n grouped by", selector), x = selector, y = "Proportion of total") + scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),labels = c("100%","80%","60%","40%","20%","0%"))
+B3Plot<-ggplot(chart_data, aes(y=value, x = variable,fill = BQA_Measure)) + geom_bar(stat="identity",position = "stack") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 0.95), panel.grid.major.x = element_blank(), panel.grid.major.y = element_line( size=.1, color="dark grey")) + scale_fill_brewer(palette="Set1") + labs(title = paste("Proportion of B3 tests broken down by B3 sub-category \n grouped by", selector), x = selector, y = "Proportion of total") + scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),labels = c("100%","80%","60%","40%","20%","0%"))
+
+###Prints the charts to an excel workbook
+xl.workbook.add()
+xl.sheet.name("Total")
+xl.write(allsummary,xl.get.excel()[["ActiveSheet"]]$Cells(1,1),row.names = FALSE)
+print(BCatPlot)
+xl[a26] = current.graphics(width=((64*4)+(64*(ncol(allsummary)-1))))
+print(B5Plot)
+xl[a51] = current.graphics(width=((64*4)+(64*(ncol(allsummary)-1))))
+print(B3Plot)
+xl[a76] = current.graphics(width=((64*5)+(64*(ncol(allsummary)-1))+20))
+#xl.sheet.add(TableNames[1])
+#xl.sheet.delete("Sheet1")
+
