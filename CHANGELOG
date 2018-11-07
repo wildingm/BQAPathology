@@ -1,3 +1,4 @@
 V1.00 Script generates tables as CSV files using user selected primary sort value
       Accesses, identifies pathologists from and add unknown GMC codes to list of national pathologists saved on the QA shared drive
       Currently known to be working for Laboratory_name, Path_national_code, Loc_method and "Radiological_appearance"
+V1.01 Code updated to allow generation of tables and charts exported into an Excel file
