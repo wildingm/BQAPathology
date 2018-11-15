@@ -31,9 +31,14 @@ BoxSelect<-function(df,rowID,colID) {
 DataExtract <- function (filename) {
   datasource<-read.csv(filename, skip = 2,stringsAsFactors = F)
   datasource<-datasource[-nrow(datasource),1:23] #remove last row (states end of data), and extra columns with calculated fields
-  datasource<-separate(datasource,col = "Primary.Sort.Value",into = PrimarySortIDHeadings, sep = "\\*") #expands the Primary.Sort.Value field 
-  datasourceselected<-datasource[,c(1,match(selector,names(datasource)),15:35)]
-  colnames(datasourceselected)[2]<-"Primary.Sort.Value"
+  if(!selector=="Local_NBSS_Code") {
+    datasource<-separate(datasource,col = "Primary.Sort.Value",into = PrimarySortIDHeadings, sep = "\\*") #expands the Primary.Sort.Value field 
+    datasourceselected<-datasource[,c(1,match(selector,names(datasource)),15:35)]
+    colnames(datasourceselected)[2]<-"Primary.Sort.Value"
+  } else {
+    datasourceselected<-datasource
+  }
+  datasourceselected$Tests.or.Clients..T.or.C.<-gsub(TRUE,"T",datasourceselected$Tests.or.Clients..T.or.C.)
   datasourceselected
 }
 
@@ -71,13 +76,31 @@ allNames<-c("Total Number of tests","Number of B1 (% of total)","Number of B2 (%
 PrimarySortIDHeadings<-c("Clinical_team", "Location_code","Location_name","RA_local_code","RA_local_name", "RA_national_code","Laboratory_code",
                          "Laboratory_name","Path_local_code","Path_local_name","Path_national_code","Loc_method","Radiological_appearance")
 
-winDialog(type = "ok", "Please choose the primary sort ID by typing the relevant numerical value into the console screen below")
+checker<-read.csv(filessrc[1], skip = 2,stringsAsFactors = F)
+if (!grepl("*",checker[1,2],fixed=T)) {
+  selector<-"Local_NBSS_Code"
+  winDialog(type = "ok", "Please choose if the data is to be analysed by tests or clients by typing the relevant numerical value into the console screen below")
+  ToC<-select.list(c("Tests","Clients"))
+  if (ToC == "Tests") {
+    ToC<-"T"
+  } else {
+    ToC<-"C"
+  }
+  #### this will need to be passed to the code below somehow when subsetting the data
+  #### checker$Tests.or.Clients..T.or.C.<-gsub(TRUE,"T",checker$Tests.or.Clients..T.or.C.)
+} else {
+  winDialog(type = "ok", "Please choose the primary sort ID by typing the relevant numerical value into the console screen below")
+  ToC<-"T"
+}
+rm(checker)
 
 RepeatExtract<-"YES"
 
 while(RepeatExtract == "YES") {
   
-  selector<-select.list(PrimarySortIDHeadings)
+  if (!exists("selector")) {
+    selector<-select.list(PrimarySortIDHeadings)
+  }
   TableNames<-file_path_sans_ext(basename(filessrc))
   filessrcData<-lapply(filessrc,DataExtract)
   
@@ -102,6 +125,7 @@ while(RepeatExtract == "YES") {
                 WBN.B4 = sum(WBN.B4, na.rm=T),WBN.B3 = sum(WBN.B3, na.rm=T),WBN.B3.wa = sum(WBN.B3.wa, na.rm=T),WBN.B3.na = sum(WBN.B3.na, na.rm=T),
                 WBN.B3.ns = sum(WBN.B3.ns, na.rm=T),WBN.B2 = sum(WBN.B2, na.rm=T),WBN.B1 = sum(WBN.B1, na.rm=T),Total = sum(Total, na.rm=T))
     bqadf<-bqadf[bqadf$Table.Identifier..A..B.or.C.=="D",] # excludes the table ID other than D
+    bqadf<-bqadf[bqadf$Tests.or.Clients..T.or.C.==ToC,] #excludes any rows where tests or clients is other than the specified value
     
     paths<-as.character(unique(bqadf$Primary.Sort.Value)) # creates a unique list Primary Sort Value
     # following code creates a data frame for the currently selected BQA data containing the numbers of cases for each pathologist
@@ -207,6 +231,7 @@ while(RepeatExtract == "YES") {
               WBN.B4 = sum(WBN.B4, na.rm=T),WBN.B3 = sum(WBN.B3, na.rm=T),WBN.B3.wa = sum(WBN.B3.wa, na.rm=T),WBN.B3.na = sum(WBN.B3.na, na.rm=T),
               WBN.B3.ns = sum(WBN.B3.ns, na.rm=T),WBN.B2 = sum(WBN.B2, na.rm=T),WBN.B1 = sum(WBN.B1, na.rm=T),Total = sum(Total, na.rm=T))
   bqadf<-bqadf[bqadf$Table.Identifier..A..B.or.C.=="D",] # excludes the table ID other than D
+  bqadf<-bqadf[bqadf$Tests.or.Clients..T.or.C.==ToC,] #excludes any rows where tests or clients is other than the specified value
   
   paths<-as.character(unique(bqadf$Primary.Sort.Value)) # creates a unique list Primary Sort Value
   
@@ -314,7 +339,12 @@ while(RepeatExtract == "YES") {
   xl.sheet.delete("Sheet1")
   xl.workbook.save(paste(selector,"generated",Sys.Date()))
   
+  if(!selector=="Local_NBSS_Code") {
   RepeatExtract<-winDialog(type = "yesno", "Do you wish to extract data for another primary sort value? If yes please enter the relevant numerical value in the console below.")
+  } else {
+    RepeatExtract<-"NO"
+  }
+  rm(selector)
 }
 rm(Pathologists)
 options(warn = oldw)
