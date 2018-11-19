@@ -40,7 +40,7 @@ DataExtractAll <- function (filename) {
 BQABarPlot<-function(rows,data,title,group) {
   chart_data<-melt(chartpropframe[rows,],id.var=data)
   chart_data$BQA_Measure<-gsub("Number of ","",chart_data$BQA_Measure)
-  BQAplot<-ggplot(chart_data, aes(y=value, x = variable,fill = BQA_Measure)) + geom_bar(stat="identity",position = "stack") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 0.95, size = 12),axis.text.y = element_text(size = 12), panel.grid.major.x = element_blank(), panel.grid.major.y = element_line( size=.1, color="dark grey"), plot.title = element_text(face = "bold", colour = "black", size = 16,hjust = 0.5), axis.title.x = element_text(face = "bold", colour = "black", size = 14), axis.title.y = element_text(face = "bold", colour = "black", size = 14), legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.5, "cm"), legend.text = element_text(size = 12)) + scale_fill_brewer(palette="Set1") + labs(title = paste("Proportion of tests broken down by",title,"\n grouped by", group), x = selector) + scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),labels = c("100%","80%","60%","40%","20%","0%")) # + guides(fill = guide_legend(nrow = 2))
+  BQAplot<-ggplot(chart_data, aes(y=value, x = variable,fill = BQA_Measure)) + geom_bar(stat="identity",position = "stack") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 0.95, size = 12),axis.text.y = element_text(size = 12), panel.grid.major.x = element_blank(), panel.grid.major.y = element_line( size=.1, color="dark grey"), plot.title = element_text(face = "bold", colour = "black", size = 16,hjust = 0.5), axis.title.x = element_text(face = "bold", colour = "black", size = 14), axis.title.y = element_text(face = "bold", colour = "black", size = 14), legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.5, "cm"), legend.text = element_text(size = 12)) + scale_fill_brewer(palette="Set1") + labs(title = paste("Proportion of tests broken down by",title,"\n grouped by", group), x = group) + scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),labels = c("100%","80%","60%","40%","20%","0%")) # + guides(fill = guide_legend(nrow = 2))
   BQAplot
 }
 
@@ -71,14 +71,16 @@ allNames<-c("Total Number of tests","Number of B1 (% of total)","Number of B2 (%
             "False Negative Rate","True False Positive Rate","Miss Rate")
 PrimarySortIDHeadings<-c("Clinical_team", "Location_code","Location_name","RA_local_code","RA_local_name", "RA_national_code","Laboratory_code",
                          "Laboratory_name","Path_local_code","Path_local_name","Path_national_code","Loc_method","Radiological_appearance")
-
+SelectionHeadings<-c(PrimarySortIDHeadings[8],PrimarySortIDHeadings[11:13])
+  
 winDialog(type = "ok", "Please choose the primary sort ID by typing the relevant numerical value into the console screen below")
 
 RepeatExtract<-"YES"
 
 while(RepeatExtract == "YES") {
   
-  selector<-select.list(PrimarySortIDHeadings)
+  selector<-select.list(SelectionHeadings)
+  group<-c("laboratory", "pathologist", "localisation method", "radiological appearance")[SelectionHeadings==selector]
   TableNames<-file_path_sans_ext(basename(filessrc))
   filessrcData<-lapply(filessrc,DataExtract)
   
@@ -174,9 +176,9 @@ while(RepeatExtract == "YES") {
     chartpropframe<-rbind(propFrame,calcframe)
     chartpropframe<-cbind("BQA_Measure"=allNames,chartpropframe)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
     ###produces bar charts for the report output
-    BCatPlot<-BQABarPlot(2:6,"BQA_Measure","B category", selector)
-    B5Plot<-BQABarPlot(7:9,"BQA_Measure","B5 sub-category", selector)
-    B3Plot<-BQABarPlot(10:12,"BQA_Measure","B3 sub-category", selector)
+    BCatPlot<-BQABarPlot(2:6,"BQA_Measure","B category", group)
+    B5Plot<-BQABarPlot(7:9,"BQA_Measure","B5 sub-category", group)
+    B3Plot<-BQABarPlot(10:12,"BQA_Measure","B3 sub-category", group)
     ###Prints the charts to an excel workbook
     xl.sheet.add(TableNames[k])
     xl.write(allsummary,xl.get.excel()[["ActiveSheet"]]$Cells(1,1),row.names = FALSE)
@@ -290,9 +292,9 @@ while(RepeatExtract == "YES") {
   chartpropframe<-rbind(propFrame,calcframe)
   chartpropframe<-cbind("BQA_Measure"=allNames,chartpropframe)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
   ###produces charts for the 
-  BCatPlot<-BQABarPlot(2:6,"BQA_Measure","B category", selector)
-  B5Plot<-BQABarPlot(7:9,"BQA_Measure","B5 sub-category", selector)
-  B3Plot<-BQABarPlot(10:12,"BQA_Measure","B3 sub-category", selector)
+  BCatPlot<-BQABarPlot(2:6,"BQA_Measure","B category", group)
+  B5Plot<-BQABarPlot(7:9,"BQA_Measure","B5 sub-category", group)
+  B3Plot<-BQABarPlot(10:12,"BQA_Measure","B3 sub-category", group)
   ###Prints the charts to an excel workbook
   xl.sheet.add()
   xl.sheet.name("Total")
