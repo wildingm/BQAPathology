@@ -29,7 +29,7 @@ BoxSelect<-function(df,rowID,colID) {
 #containing the data, the row ID (10, 20, 30, 40, 50, 60 or 9999) and the relevant column ID
 
 DataExtract <- function (filename) {
-  datasource<-read.csv(filename, skip = 2,stringsAsFactors = F)
+  datasource<-read.csv(filename, skip = 3,stringsAsFactors = F)
   datasource<-datasource[-nrow(datasource),1:23] #remove last row (states end of data), and extra columns with calculated fields
   if(!selector=="Local_NBSS_Code") {
     datasource<-separate(datasource,col = "Primary.Sort.Value",into = PrimarySortIDHeadings, sep = "\\*") #expands the Primary.Sort.Value field 
