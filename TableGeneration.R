@@ -3,6 +3,8 @@
 oldw<-getOption("warn")
 options(warn = -1)
 
+if (exists(selector)) {rm(selector)}
+
 source("Pathologist lookup.R")
 
 if (!require('tools')) {
