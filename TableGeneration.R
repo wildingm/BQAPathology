@@ -3,7 +3,7 @@
 oldw<-getOption("warn")
 options(warn = -1)
 
-if (exists(selector)) {rm(selector)}
+if (exists(selector)==T) {rm(selector)}
 
 source("Pathologist lookup.R")
 
