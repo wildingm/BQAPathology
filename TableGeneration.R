@@ -123,6 +123,7 @@ while(RepeatExtract == "YES") {
   
   if (!exists("selector")) {
     selector<-select.list(SelectionHeadings)
+    group<-c("laboratory", "pathologist", "localisation method", "radiological appearance")[SelectionHeadings==selector]
   }
   TableNames<-file_path_sans_ext(basename(filessrc))
   filessrcData<-lapply(filessrc,DataExtract)
@@ -221,9 +222,9 @@ while(RepeatExtract == "YES") {
     chartpropframe<-cbind("BQA_Measure"=allNames,chartpropframe)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
 
     ###produces bar charts for the report output
-    BCatPlot<-BQABarPlot(2:6,"BQA_Measure","B category", selector)
-    B5Plot<-BQABarPlot(7:9,"BQA_Measure","B5 sub-category", selector)
-    B3Plot<-BQABarPlot(10:12,"BQA_Measure","B3 sub-category", selector)
+    BCatPlot<-BQABarPlot(2:6,"BQA_Measure","B category", group)
+    B5Plot<-BQABarPlot(7:9,"BQA_Measure","B5 sub-category", group)
+    B3Plot<-BQABarPlot(10:12,"BQA_Measure","B3 sub-category", group)
     
     ###Prints the charts to an excel workbook
     xl.sheet.add(TableNames[k])
@@ -338,11 +339,11 @@ while(RepeatExtract == "YES") {
   propFrame[is.na(propFrame)]<-0
   chartpropframe<-rbind(propFrame,calcframe)
   chartpropframe<-cbind("BQA_Measure"=allNames,chartpropframe)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
-  ###produces charts for the 
+
   ###produces bar charts for the report output
-  BCatPlot<-BQABarPlot(2:6,"BQA_Measure","B category", selector)
-  B5Plot<-BQABarPlot(7:9,"BQA_Measure","B5 sub-category", selector)
-  B3Plot<-BQABarPlot(10:12,"BQA_Measure","B3 sub-category", selector)
+  BCatPlot<-BQABarPlot(2:6,"BQA_Measure","B category", group)
+  B5Plot<-BQABarPlot(7:9,"BQA_Measure","B5 sub-category", group)
+  B3Plot<-BQABarPlot(10:12,"BQA_Measure","B3 sub-category", group)
   
   ###Prints the charts to an excel workbook
   xl.sheet.add()
