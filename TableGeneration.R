@@ -25,9 +25,14 @@ BoxSelect<-function(df,rowID,colID) {
 DataExtract <- function (filename) {
   datasource<-read.csv(filename, skip = 3,stringsAsFactors = F)
   datasource<-datasource[-nrow(datasource),1:23] #remove last row (states end of data), and extra columns with calculated fields
-  datasource<-separate(datasource,col = "Primary.Sort.Value",into = PrimarySortIDHeadings, sep = "\\*") #expands the Primary.Sort.Value field 
-  datasourceselected<-datasource[,c(1,match(selector,names(datasource)),15:35)]
-  colnames(datasourceselected)[2]<-"Primary.Sort.Value"
+  if(!selector=="Local_NBSS_Code") {
+    datasource<-separate(datasource,col = "Primary.Sort.Value",into = PrimarySortIDHeadings, sep = "\\*") #expands the Primary.Sort.Value field 
+    datasourceselected<-datasource[,c(1,match(selector,names(datasource)),15:35)]
+    colnames(datasourceselected)[2]<-"Primary.Sort.Value"
+  } else {
+    datasourceselected<-datasource
+  }
+  datasourceselected$Tests.or.Clients..T.or.C.<-gsub(TRUE,"T",datasourceselected$Tests.or.Clients..T.or.C.)
   datasourceselected
 }
 
