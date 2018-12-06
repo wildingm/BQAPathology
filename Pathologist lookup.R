@@ -3,11 +3,26 @@
 ###                           Identifying unknown pathologists
 ###                           Updating list of pathologists with provided data
 
-library(dplyr)
-library(tidyr)
-library(reshape2)
-library(rlang)
-library(excel.link)
+if (!require('dplyr')) {
+  install.packages('dplyr')
+  library('dplyr')
+}
+if (!require('tidyr')) {
+  install.packages('tidyr')
+  library('tidyr')
+}
+if (!require('reshape2')) {
+  install.packages('reshape2')
+  library('reshape2')
+}
+if (!require('rlang')) {
+  install.packages('rlang')
+  library('rlang')
+}
+if (!require('excel.link')) {
+  install.packages('excel.link')
+  library('excel.link')
+}
 
 PrimarySortIDHeadings<-c("Clinical_team", "Location_code","Location_name","RA_local_code","RA_local_name", "RA_national_code","Laboratory_code",
                          "Laboratory_name","Path_local_code","Path_local_name","Path_national_code","Loc_method","Radiological_appearance")
