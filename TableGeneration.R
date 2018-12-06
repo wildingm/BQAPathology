@@ -43,9 +43,31 @@ DataExtract <- function (filename) {
 }
 
 DataExtractAll <- function (filename) {
-  datasource<-read.csv(filename, skip = 2,stringsAsFactors = F)
+  datasource<-read.csv(filename, skip = 3,stringsAsFactors = F)
   datasource<-datasource[-nrow(datasource),1:23] #remove last row (states end of data), and extra columns with calculated fields
   datasource<-separate(datasource,col = "Primary.Sort.Value",into = PrimarySortIDHeadings, sep = "\\*") #expands the Primary.Sort.Value field 
+}
+
+BQABarPlot<-function(rows,data,title,group) {
+  chart_data<-melt(chartpropframe[rows,],id.var=data)
+  chart_data$BQA_Measure<-gsub("Number of ","",chart_data$BQA_Measure)
+  BQAplot<-ggplot(chart_data, aes(y=value, x = variable,fill = BQA_Measure)) +
+    geom_bar(stat="identity",position = "stack") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 0.95, size = 12),
+          axis.text.y = element_text(size = 12),
+          panel.grid.major.x = element_blank(),
+          panel.grid.major.y = element_line( size=.1, color="dark grey"),
+          plot.title = element_text(face = "bold", colour = "black", size = 16,hjust = 0.5),
+          axis.title.x = element_text(face = "bold", colour = "black", size = 14),
+          axis.title.y = element_text(face = "bold", colour = "black", size = 14),
+          legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.5, "cm"), 
+          legend.text = element_text(size = 12)) + scale_fill_brewer(palette="Set1") +
+    labs(title = paste("Proportion of tests broken down by",title,"\n data displayed by", group), x = group) +
+    scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
+                       labels = c("100%","80%","60%","40%","20%","0%"))  #+ 
+    #guides(fill = guide_legend(nrow = 2))
+  BQAplot
 }
 
 winDialog(type = "ok", "Please choose the BQA files for analysis")
@@ -75,7 +97,8 @@ allNames<-c("Total Number of tests","Number of B1 (% of total)","Number of B2 (%
             "False Negative Rate","True False Positive Rate","Miss Rate")
 PrimarySortIDHeadings<-c("Clinical_team", "Location_code","Location_name","RA_local_code","RA_local_name", "RA_national_code","Laboratory_code",
                          "Laboratory_name","Path_local_code","Path_local_name","Path_national_code","Loc_method","Radiological_appearance")
-
+SelectionHeadings<-c(PrimarySortIDHeadings[8],PrimarySortIDHeadings[11:13])
+  
 checker<-read.csv(filessrc[1], skip = 2,stringsAsFactors = F)
 if (!grepl("*",checker[1,2],fixed=T)) {
   selector<-"Local_NBSS_Code"
@@ -99,7 +122,8 @@ RepeatExtract<-"YES"
 while(RepeatExtract == "YES") {
   
   if (!exists("selector")) {
-    selector<-select.list(PrimarySortIDHeadings)
+    selector<-select.list(SelectionHeadings)
+    group<-c("laboratory", "pathologist", "localisation method", "radiological appearance")[SelectionHeadings==selector]
   }
   TableNames<-file_path_sans_ext(basename(filessrc))
   filessrcData<-lapply(filessrc,DataExtract)
@@ -111,7 +135,7 @@ while(RepeatExtract == "YES") {
   } 
   
   xl.workbook.add()
-
+  
   for (k in 1:length(filessrcData)){
     
     numFrame<-data.frame(stringsAsFactors = FALSE)
@@ -180,7 +204,7 @@ while(RepeatExtract == "YES") {
     allsummary<-rbind(casesFrame,calcSummarydf)
     allsummary<-cbind("BQA_Measure"=allNames,allsummary)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
     TablesList[[TableNames[k]]]<-allsummary
-
+    
     ###produces proportions for calculated stats
     calcframe<-numFrame/denomFrame
     calcframe[is.na(calcframe)]<-0
@@ -196,26 +220,24 @@ while(RepeatExtract == "YES") {
     propFrame[is.na(propFrame)]<-0
     chartpropframe<-rbind(propFrame,calcframe)
     chartpropframe<-cbind("BQA_Measure"=allNames,chartpropframe)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
-    ###produces charts for the 
-    chart_data<-melt(chartpropframe[2:6,],id.var="BQA_Measure")
-    BCatPlot<-ggplot(chart_data, aes(y=value, x = variable,fill = BQA_Measure)) + geom_bar(stat="identity",position = "stack") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 0.95), panel.grid.major.x = element_blank(), panel.grid.major.y = element_line( size=.1, color="dark grey")) + scale_fill_brewer(palette="Set1") + labs(title = paste("Proportion of tests broken down by B category \n grouped by", selector), x = selector) + scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),labels = c("100%","80%","60%","40%","20%","0%"))
-    chart_data<-melt(chartpropframe[7:9,],id.var="BQA_Measure")
-    B5Plot<-ggplot(chart_data, aes(y=value, x = variable,fill = BQA_Measure)) + geom_bar(stat="identity",position = "stack") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 0.95), panel.grid.major.x = element_blank(), panel.grid.major.y = element_line( size=.1, color="dark grey")) + scale_fill_brewer(palette="Set1") + labs(title = paste("Proportion of B5 tests broken down by B5 sub-category \n grouped by", selector), x = selector, y = "Proportion of total") + scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),labels = c("100%","80%","60%","40%","20%","0%"))
-    chart_data<-melt(chartpropframe[10:12,],id.var="BQA_Measure")
-    B3Plot<-ggplot(chart_data, aes(y=value, x = variable,fill = BQA_Measure)) + geom_bar(stat="identity",position = "stack") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 0.95), panel.grid.major.x = element_blank(), panel.grid.major.y = element_line( size=.1, color="dark grey")) + scale_fill_brewer(palette="Set1") + labs(title = paste("Proportion of B3 tests broken down by B3 sub-category \n grouped by", selector), x = selector, y = "Proportion of total") + scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),labels = c("100%","80%","60%","40%","20%","0%"))
+
+    ###produces bar charts for the report output
+    BCatPlot<-BQABarPlot(2:6,"BQA_Measure","B category", group)
+    B5Plot<-BQABarPlot(7:9,"BQA_Measure","B5 sub-category", group)
+    B3Plot<-BQABarPlot(10:12,"BQA_Measure","B3 sub-category", group)
     
     ###Prints the charts to an excel workbook
     xl.sheet.add(TableNames[k])
     xl.write(allsummary,xl.get.excel()[["ActiveSheet"]]$Cells(1,1),row.names = FALSE)
     print(BCatPlot)
-    xl[a26] = current.graphics(width=((64*4)+(64*(ncol(allsummary)-1))))
+    xl[a26] = current.graphics(width=1000)
     print(B5Plot)
-    xl[a51] = current.graphics(width=((64*4)+(64*(ncol(allsummary)-1))))
+    xl[a51] = current.graphics(width=1000)
     print(B3Plot)
-    xl[a76] = current.graphics(width=((64*5)+(64*(ncol(allsummary)-1))+20))
-
+    xl[a76] = current.graphics(width=1000)
+    
   }  
-
+  
   ###### Produces Table using combined data from all selected files
   
   filessrcDataTotal<-bind_rows(filessrcData)
@@ -301,7 +323,7 @@ while(RepeatExtract == "YES") {
   casesFrame<-casesFrame[,order(-casesFrame[1,])]
   allsummary<-rbind(casesFrame,calcSummarydf)
   allsummary<-cbind("BQA_Measure"=allNames,allsummary)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
-
+  
   ###produces proportions for calculated stats
   calcframe<-numFrame/denomFrame
   calcframe[is.na(calcframe)]<-0
@@ -317,30 +339,28 @@ while(RepeatExtract == "YES") {
   propFrame[is.na(propFrame)]<-0
   chartpropframe<-rbind(propFrame,calcframe)
   chartpropframe<-cbind("BQA_Measure"=allNames,chartpropframe)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
-  ###produces charts for the 
-  chart_data<-melt(chartpropframe[2:6,],id.var="BQA_Measure")
-  BCatPlot<-ggplot(chart_data, aes(y=value, x = variable,fill = BQA_Measure)) + geom_bar(stat="identity",position = "stack") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 0.95), panel.grid.major.x = element_blank(), panel.grid.major.y = element_line( size=.1, color="dark grey")) + scale_fill_brewer(palette="Set1") + labs(title = paste("Proportion of tests broken down by B category \n grouped by", selector), x = selector) + scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),labels = c("100%","80%","60%","40%","20%","0%"))
-  chart_data<-melt(chartpropframe[7:9,],id.var="BQA_Measure")
-  B5Plot<-ggplot(chart_data, aes(y=value, x = variable,fill = BQA_Measure)) + geom_bar(stat="identity",position = "stack") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 0.95), panel.grid.major.x = element_blank(), panel.grid.major.y = element_line( size=.1, color="dark grey")) + scale_fill_brewer(palette="Set1") + labs(title = paste("Proportion of B5 tests broken down by B5 sub-category \n grouped by", selector), x = selector, y = "Proportion of total") + scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),labels = c("100%","80%","60%","40%","20%","0%"))
-  chart_data<-melt(chartpropframe[10:12,],id.var="BQA_Measure")
-  B3Plot<-ggplot(chart_data, aes(y=value, x = variable,fill = BQA_Measure)) + geom_bar(stat="identity",position = "stack") + theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 0.95), panel.grid.major.x = element_blank(), panel.grid.major.y = element_line( size=.1, color="dark grey")) + scale_fill_brewer(palette="Set1") + labs(title = paste("Proportion of B3 tests broken down by B3 sub-category \n grouped by", selector), x = selector, y = "Proportion of total") + scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),labels = c("100%","80%","60%","40%","20%","0%"))
+
+  ###produces bar charts for the report output
+  BCatPlot<-BQABarPlot(2:6,"BQA_Measure","B category", group)
+  B5Plot<-BQABarPlot(7:9,"BQA_Measure","B5 sub-category", group)
+  B3Plot<-BQABarPlot(10:12,"BQA_Measure","B3 sub-category", group)
   
   ###Prints the charts to an excel workbook
   xl.sheet.add()
   xl.sheet.name("Total")
   xl.write(allsummary,xl.get.excel()[["ActiveSheet"]]$Cells(1,1),row.names = FALSE)
   print(BCatPlot)
-  xl[a26] = current.graphics(width=((64*4)+(64*(ncol(allsummary)-1))))
+  xl[a26] = current.graphics(width=1000)
   print(B5Plot)
-  xl[a51] = current.graphics(width=((64*4)+(64*(ncol(allsummary)-1))))
+  xl[a51] = current.graphics(width=1000)
   print(B3Plot)
-  xl[a76] = current.graphics(width=((64*5)+(64*(ncol(allsummary)-1))+20))
+  xl[a76] = current.graphics(width=1000)
   #xl.sheet.add(TableNames[1])
   xl.sheet.delete("Sheet1")
   xl.workbook.save(paste(selector,"generated",Sys.Date()))
   
   if(!selector=="Local_NBSS_Code") {
-  RepeatExtract<-winDialog(type = "yesno", "Do you wish to extract data for another primary sort value? If yes please enter the relevant numerical value in the console below.")
+    RepeatExtract<-winDialog(type = "yesno", "Do you wish to extract data for another primary sort value? If yes please enter the relevant numerical value in the console below.")
   } else {
     RepeatExtract<-"NO"
   }
