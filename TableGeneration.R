@@ -5,8 +5,14 @@ options(warn = -1)
 
 source("Pathologist lookup.R")
 
-library(tools)
-library(ggplot2)
+if (!require('tools')) {
+  install.packages('tools')
+  library('tools')
+}
+if (!require('ggplot2')) {
+  install.packages('ggplot2')
+  library('ggplot2')
+}
 
 percent<-function(x,digits=2,format="f") {
   paste0(formatC(100*x,format=format,digits=digits),"%")
