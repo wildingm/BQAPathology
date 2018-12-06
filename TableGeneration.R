@@ -78,14 +78,31 @@ PrimarySortIDHeadings<-c("Clinical_team", "Location_code","Location_name","RA_lo
                          "Laboratory_name","Path_local_code","Path_local_name","Path_national_code","Loc_method","Radiological_appearance")
 SelectionHeadings<-c(PrimarySortIDHeadings[8],PrimarySortIDHeadings[11:13])
   
-winDialog(type = "ok", "Please choose the primary sort ID by typing the relevant numerical value into the console screen below")
+checker<-read.csv(filessrc[1], skip = 2,stringsAsFactors = F)
+if (!grepl("*",checker[1,2],fixed=T)) {
+  selector<-"Local_NBSS_Code"
+  winDialog(type = "ok", "Please choose if the data is to be analysed by tests or clients by typing the relevant numerical value into the console screen below")
+  ToC<-select.list(c("Tests","Clients"))
+  if (ToC == "Tests") {
+    ToC<-"T"
+  } else {
+    ToC<-"C"
+  }
+  #### this will need to be passed to the code below somehow when subsetting the data
+  #### checker$Tests.or.Clients..T.or.C.<-gsub(TRUE,"T",checker$Tests.or.Clients..T.or.C.)
+} else {
+  winDialog(type = "ok", "Please choose the primary sort ID by typing the relevant numerical value into the console screen below")
+  ToC<-"T"
+}
+rm(checker)
 
 RepeatExtract<-"YES"
 
 while(RepeatExtract == "YES") {
   
-  selector<-select.list(SelectionHeadings)
-  group<-c("laboratory", "pathologist", "localisation method", "radiological appearance")[SelectionHeadings==selector]
+  if (!exists("selector")) {
+    selector<-select.list(PrimarySortIDHeadings)
+  }
   TableNames<-file_path_sans_ext(basename(filessrc))
   filessrcData<-lapply(filessrc,DataExtract)
   
@@ -96,7 +113,7 @@ while(RepeatExtract == "YES") {
   } 
   
   xl.workbook.add()
-
+  
   for (k in 1:length(filessrcData)){
     
     numFrame<-data.frame(stringsAsFactors = FALSE)
@@ -110,6 +127,7 @@ while(RepeatExtract == "YES") {
                 WBN.B4 = sum(WBN.B4, na.rm=T),WBN.B3 = sum(WBN.B3, na.rm=T),WBN.B3.wa = sum(WBN.B3.wa, na.rm=T),WBN.B3.na = sum(WBN.B3.na, na.rm=T),
                 WBN.B3.ns = sum(WBN.B3.ns, na.rm=T),WBN.B2 = sum(WBN.B2, na.rm=T),WBN.B1 = sum(WBN.B1, na.rm=T),Total = sum(Total, na.rm=T))
     bqadf<-bqadf[bqadf$Table.Identifier..A..B.or.C.=="D",] # excludes the table ID other than D
+    bqadf<-bqadf[bqadf$Tests.or.Clients..T.or.C.==ToC,] #excludes any rows where tests or clients is other than the specified value
     
     paths<-as.character(unique(bqadf$Primary.Sort.Value)) # creates a unique list Primary Sort Value
     # following code creates a data frame for the currently selected BQA data containing the numbers of cases for each pathologist
@@ -164,7 +182,7 @@ while(RepeatExtract == "YES") {
     allsummary<-rbind(casesFrame,calcSummarydf)
     allsummary<-cbind("BQA_Measure"=allNames,allsummary)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
     TablesList[[TableNames[k]]]<-allsummary
-
+    
     ###produces proportions for calculated stats
     calcframe<-numFrame/denomFrame
     calcframe[is.na(calcframe)]<-0
@@ -180,10 +198,12 @@ while(RepeatExtract == "YES") {
     propFrame[is.na(propFrame)]<-0
     chartpropframe<-rbind(propFrame,calcframe)
     chartpropframe<-cbind("BQA_Measure"=allNames,chartpropframe)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
+
     ###produces bar charts for the report output
     BCatPlot<-BQABarPlot(2:6,"BQA_Measure","B category", group)
     B5Plot<-BQABarPlot(7:9,"BQA_Measure","B5 sub-category", group)
     B3Plot<-BQABarPlot(10:12,"BQA_Measure","B3 sub-category", group)
+    
     ###Prints the charts to an excel workbook
     xl.sheet.add(TableNames[k])
     xl.write(allsummary,xl.get.excel()[["ActiveSheet"]]$Cells(1,1),row.names = FALSE)
@@ -193,9 +213,9 @@ while(RepeatExtract == "YES") {
     xl[a51] = current.graphics(width=1000)
     print(B3Plot)
     xl[a76] = current.graphics(width=1000)
-
+    
   }  
-
+  
   ###### Produces Table using combined data from all selected files
   
   filessrcDataTotal<-bind_rows(filessrcData)
@@ -211,6 +231,7 @@ while(RepeatExtract == "YES") {
               WBN.B4 = sum(WBN.B4, na.rm=T),WBN.B3 = sum(WBN.B3, na.rm=T),WBN.B3.wa = sum(WBN.B3.wa, na.rm=T),WBN.B3.na = sum(WBN.B3.na, na.rm=T),
               WBN.B3.ns = sum(WBN.B3.ns, na.rm=T),WBN.B2 = sum(WBN.B2, na.rm=T),WBN.B1 = sum(WBN.B1, na.rm=T),Total = sum(Total, na.rm=T))
   bqadf<-bqadf[bqadf$Table.Identifier..A..B.or.C.=="D",] # excludes the table ID other than D
+  bqadf<-bqadf[bqadf$Tests.or.Clients..T.or.C.==ToC,] #excludes any rows where tests or clients is other than the specified value
   
   paths<-as.character(unique(bqadf$Primary.Sort.Value)) # creates a unique list Primary Sort Value
   
@@ -280,7 +301,7 @@ while(RepeatExtract == "YES") {
   casesFrame<-casesFrame[,order(-casesFrame[1,])]
   allsummary<-rbind(casesFrame,calcSummarydf)
   allsummary<-cbind("BQA_Measure"=allNames,allsummary)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
-
+  
   ###produces proportions for calculated stats
   calcframe<-numFrame/denomFrame
   calcframe[is.na(calcframe)]<-0
@@ -297,9 +318,11 @@ while(RepeatExtract == "YES") {
   chartpropframe<-rbind(propFrame,calcframe)
   chartpropframe<-cbind("BQA_Measure"=allNames,chartpropframe)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
   ###produces charts for the 
+  ###produces bar charts for the report output
   BCatPlot<-BQABarPlot(2:6,"BQA_Measure","B category", group)
   B5Plot<-BQABarPlot(7:9,"BQA_Measure","B5 sub-category", group)
   B3Plot<-BQABarPlot(10:12,"BQA_Measure","B3 sub-category", group)
+  
   ###Prints the charts to an excel workbook
   xl.sheet.add()
   xl.sheet.name("Total")
@@ -314,7 +337,12 @@ while(RepeatExtract == "YES") {
   xl.sheet.delete("Sheet1")
   xl.workbook.save(paste(selector,"generated",Sys.Date()))
   
-  RepeatExtract<-winDialog(type = "yesno", "Do you wish to extract data for another primary sort value? If yes please enter the relevant numerical value in the console below.")
+  if(!selector=="Local_NBSS_Code") {
+    RepeatExtract<-winDialog(type = "yesno", "Do you wish to extract data for another primary sort value? If yes please enter the relevant numerical value in the console below.")
+  } else {
+    RepeatExtract<-"NO"
+  }
+  rm(selector)
 }
 rm(Pathologists)
 options(warn = oldw)
