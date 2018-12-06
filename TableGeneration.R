@@ -43,7 +43,7 @@ DataExtract <- function (filename) {
 }
 
 DataExtractAll <- function (filename) {
-  datasource<-read.csv(filename, skip = 2,stringsAsFactors = F)
+  datasource<-read.csv(filename, skip = 3,stringsAsFactors = F)
   datasource<-datasource[-nrow(datasource),1:23] #remove last row (states end of data), and extra columns with calculated fields
   datasource<-separate(datasource,col = "Primary.Sort.Value",into = PrimarySortIDHeadings, sep = "\\*") #expands the Primary.Sort.Value field 
 }
