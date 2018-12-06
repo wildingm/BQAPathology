@@ -3,6 +3,8 @@
 oldw<-getOption("warn")
 options(warn = -1)
 
+if (exists("selector")) {rm(selector)}
+
 source("Pathologist lookup.R")
 
 if (!require('tools')) {
@@ -102,6 +104,7 @@ SelectionHeadings<-c(PrimarySortIDHeadings[8],PrimarySortIDHeadings[11:13])
 checker<-read.csv(filessrc[1], skip = 2,stringsAsFactors = F)
 if (!grepl("*",checker[1,2],fixed=T)) {
   selector<-"Local_NBSS_Code"
+  group<-"NBSS pathologist code"
   winDialog(type = "ok", "Please choose if the data is to be analysed by tests or clients by typing the relevant numerical value into the console screen below")
   ToC<-select.list(c("Tests","Clients"))
   if (ToC == "Tests") {
