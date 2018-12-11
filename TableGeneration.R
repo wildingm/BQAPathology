@@ -103,7 +103,7 @@ PrimarySortIDHeadings<-c("Clinical_team", "Location_code","Location_name","RA_lo
 SelectionHeadings<-c(PrimarySortIDHeadings[8],PrimarySortIDHeadings[11:13])
   
 checker<-read.csv(filessrc[1], skip = 3,stringsAsFactors = F)
-if (!grepl("*",checker[1,2],fixed=T)) {
+if (!grepl("*",checker[2,2],fixed=T)) {
   selector<-"Local_NBSS_Code"
   group<-"NBSS pathologist code"
   winDialog(type = "ok", "Please choose if the data is to be analysed by tests or clients by typing the relevant numerical value into the console screen below")
