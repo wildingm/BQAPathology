@@ -64,7 +64,8 @@ BQABarPlot<-function(rows,data,title,group) {
           axis.title.x = element_text(face = "bold", colour = "black", size = 14),
           axis.title.y = element_text(face = "bold", colour = "black", size = 14),
           legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.5, "cm"), 
-          legend.text = element_text(size = 12)) + scale_fill_brewer(palette="Set1") +
+          legend.text = element_text(size = 12)) +
+    scale_fill_brewer(palette="Set1") +
     labs(title = paste("Proportion of tests broken down by",title,"\n data displayed by", group), x = group) +
     scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
                        labels = c("100%","80%","60%","40%","20%","0%"))  #+ 
@@ -101,7 +102,7 @@ PrimarySortIDHeadings<-c("Clinical_team", "Location_code","Location_name","RA_lo
                          "Laboratory_name","Path_local_code","Path_local_name","Path_national_code","Loc_method","Radiological_appearance")
 SelectionHeadings<-c(PrimarySortIDHeadings[8],PrimarySortIDHeadings[11:13])
   
-checker<-read.csv(filessrc[1], skip = 2,stringsAsFactors = F)
+checker<-read.csv(filessrc[1], skip = 3,stringsAsFactors = F)
 if (!grepl("*",checker[1,2],fixed=T)) {
   selector<-"Local_NBSS_Code"
   group<-"NBSS pathologist code"
