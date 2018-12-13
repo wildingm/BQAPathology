@@ -26,6 +26,8 @@ if (!require('excel.link')) {
 
 PrimarySortIDHeadings<-c("Clinical_team", "Location_code","Location_name","RA_local_code","RA_local_name", "RA_national_code","Laboratory_code",
                          "Laboratory_name","Path_local_code","Path_local_name","Path_national_code","Loc_method","Radiological_appearance")
+Pathologists<-xl.read.file("\\\\phe.gov.uk\\Health & Wellbeing\\HAW\\Quality Assurance\\QA SHARED\\Breast\\Data\\National pathology audit 2013-16\\CONFIDENTIAL P-Code look up\\Pathologist Codes BQA.xlsx",password = "M4r5hma11oW")
+Pathologists<-filter(Pathologists,Pathologists$P.Code != "") ### removes empty rows
 
 FindPathCode <- function(NationalCode) {
   if (is.na(NationalCode)) {
@@ -91,6 +93,8 @@ while(CheckFile=="YES") {
       }
     }
   }
+  Pathologists<-xl.read.file("\\\\phe.gov.uk\\Health & Wellbeing\\HAW\\Quality Assurance\\QA SHARED\\Breast\\Data\\National pathology audit 2013-16\\CONFIDENTIAL P-Code look up\\Pathologist Codes BQA.xlsx",password = "M4r5hma11oW")
+  Pathologists<-filter(Pathologists,Pathologists$P.Code != "") ### removes empty rows
   CheckFile <- winDialog(type = "yesno", "Do you want to check another file?")
 }
 rm(checksource)
@@ -99,6 +103,4 @@ rm(checkcode)
 rm(CheckFile)
 rm(codeslist)
 
-Pathologists<-xl.read.file("\\\\phe.gov.uk\\Health & Wellbeing\\HAW\\Quality Assurance\\QA SHARED\\Breast\\Data\\National pathology audit 2013-16\\CONFIDENTIAL P-Code look up\\Pathologist Codes BQA.xlsx",password = "M4r5hma11oW")
-Pathologists<-filter(Pathologists,Pathologists$P.Code != "") ### removes empty rows
 
