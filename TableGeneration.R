@@ -189,6 +189,9 @@ while(RepeatExtract == "YES") {
       numFrame<-rbind(numFrame,numStore,stringsAsFactors = FALSE)
       denomFrame<-rbind(denomFrame,denomStore,stringsAsFactors = FALSE)
     }
+    if (selector != "Path_national_code") {
+      paths[nchar(paths)==0]<-paste0("UNK_",selector)
+    }
     colnames(numFrame)<-paths                       #names the columns of the dataframe by pathologist code
     colnames(numFrame)[ncol(numFrame)]<-"TOT"       #renames the last column as the TOT column
     colnames(denomFrame)<-paths                     #names the columns of the dataframe by pathologist code
@@ -197,9 +200,7 @@ while(RepeatExtract == "YES") {
     calcSummarydf[is.na(calcSummarydf)]<-NA
     calcSummarydf<-as.data.frame(lapply(calcSummarydf,percent),stringsAsFactors = FALSE)
     calcSummarydf<-replace(calcSummarydf,calcSummarydf==" NA%","No Cases")
-    if (selector != "Path_national_code") {
-      paths[nchar(paths)==0]<-paste0("UNK_",selector)
-    }
+
     colnames(calcSummarydf)<-paths
     colnames(calcSummarydf)[ncol(calcSummarydf)]<-"TOT"
     colnames(casesFrame)<-paths
@@ -309,6 +310,9 @@ while(RepeatExtract == "YES") {
     numFrame<-rbind(numFrame,numStore,stringsAsFactors = FALSE)
     denomFrame<-rbind(denomFrame,denomStore,stringsAsFactors = FALSE)
   }
+  if (selector != "Path_national_code") {
+    paths[nchar(paths)==0]<-paste0("UNK_",selector)
+  }
   colnames(numFrame)<-paths                       #names the columns of the dataframe by pathologist code
   colnames(numFrame)[ncol(numFrame)]<-"TOT"       #renames the last column as the TOT column
   colnames(denomFrame)<-paths                     #names the columns of the dataframe by pathologist code
@@ -317,9 +321,7 @@ while(RepeatExtract == "YES") {
   calcSummarydf[is.na(calcSummarydf)]<-NA
   calcSummarydf<-as.data.frame(lapply(calcSummarydf,percent),stringsAsFactors = FALSE)
   calcSummarydf<-replace(calcSummarydf,calcSummarydf==" NA%","No Cases")
-  if (selector != "Path_national_code") {
-    paths[nchar(paths)==0]<-paste0("UNK_",selector)
-  }
+
   colnames(calcSummarydf)<-paths
   colnames(calcSummarydf)[ncol(calcSummarydf)]<-"TOT"
   colnames(casesFrame)<-paths
