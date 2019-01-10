@@ -3,7 +3,7 @@
 oldw<-getOption("warn")
 options(warn = -1)
 
-if (exists(selector)) {rm(selector)}
+if (exists("selector")) {rm(selector)}
 
 source("Pathologist lookup.R")
 
@@ -95,6 +95,9 @@ allNames<-c("Total Number of tests","Number of B1 (% of total)","Number of B2 (%
             "Number of B3 without atypia (% B3)","Number of B3 with atypia (% B3)","Number of B3 (% of total)",
             "Number of B4 (% of total)","Number of B5c (% of B5)","Number of B5b (% of B5)","Number of B5a (% of B5)",
             "Number of B5 (% of total)","Absolute Sensitivity","Specificity (biopsy cases only)",
+            "Specificity (Full)","Complete Sensitivity","PPV (B5)","PPV (B4)","PPV (B3)","Negative Predictive Value",
+            "False Negative Rate","True False Positive Rate","Miss Rate")
+calcnames<-c("Absolute Sensitivity","Specificity (biopsy cases only)",
             "Specificity (Full)","Complete Sensitivity","PPV (B5)","PPV (B4)","PPV (B3)","Negative Predictive Value",
             "False Negative Rate","True False Positive Rate","Miss Rate")
 PrimarySortIDHeadings<-c("Clinical_team", "Location_code","Location_name","RA_local_code","RA_local_name", "RA_national_code","Laboratory_code",
@@ -238,6 +241,15 @@ while(RepeatExtract == "YES") {
     print(B3Plot)
     xl[a76] = current.graphics(width=1000)
     
+    ###Adds tables containing the numerators and denominators for the calculated stats
+    numFrame<-numFrame[,order(match(names(numFrame),names(allsummary)[2:ncol(allsummary)]))]
+    numFrame<-cbind("BQA_Measure"=calcnames,numFrame)
+    denomFrame<-denomFrame[,order(match(names(denomFrame),names(allsummary)[2:ncol(allsummary)]))]
+    denomFrame<-cbind("BQA_Measure"=calcnames,denomFrame)
+    xl.write("Numerators",xl.get.excel()[["ActiveSheet"]]$Cells(101,1),row.names = FALSE)
+    xl.write(numFrame,xl.get.excel()[["ActiveSheet"]]$Cells(102,1),row.names = FALSE)
+    xl.write("Denominators",xl.get.excel()[["ActiveSheet"]]$Cells(115,1),row.names = FALSE)
+    xl.write(denomFrame,xl.get.excel()[["ActiveSheet"]]$Cells(116,1),row.names = FALSE)
   }  
   
   ###### Produces Table using combined data from all selected files
@@ -357,7 +369,18 @@ while(RepeatExtract == "YES") {
   xl[a51] = current.graphics(width=1000)
   print(B3Plot)
   xl[a76] = current.graphics(width=1000)
-  #xl.sheet.add(TableNames[1])
+  
+  ###Adds tables containing the numerators and denominators for the calculated stats
+  numFrame<-numFrame[,order(match(names(numFrame),names(allsummary)[2:ncol(allsummary)]))]
+  numFrame<-cbind("BQA_Measure"=calcnames,numFrame)
+  denomFrame<-denomFrame[,order(match(names(denomFrame),names(allsummary)[2:ncol(allsummary)]))]
+  denomFrame<-cbind("BQA_Measure"=calcnames,denomFrame)
+  xl.write("Numerators",xl.get.excel()[["ActiveSheet"]]$Cells(101,1),row.names = FALSE)
+  xl.write(numFrame,xl.get.excel()[["ActiveSheet"]]$Cells(102,1),row.names = FALSE)
+  xl.write("Denominators",xl.get.excel()[["ActiveSheet"]]$Cells(115,1),row.names = FALSE)
+  xl.write(denomFrame,xl.get.excel()[["ActiveSheet"]]$Cells(116,1),row.names = FALSE)
+
+  ### remove and save 
   xl.sheet.delete("Sheet1")
   xl.workbook.save(paste(selector,"generated",Sys.Date()))
   
