@@ -5,3 +5,4 @@ V1.01 Code updated to allow generation of tables and charts exported into an Exc
 V1.01.01 Updated package installation code to force installation of required packages if not present in the users environment
 V1.02 Updated code to allow for use of files not generated from the new BSIS report. Allows selection of Tests or Clients as part of the process
 V1.03 Changes to many items of code to ensure that sourcing the script correctly runs to produce the output for the user
+V1.04 Additions to output to include numerators anddenominators for calculated stats - this allows users to aggregate across multiple sheets if necessary
