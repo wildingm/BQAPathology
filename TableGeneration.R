@@ -75,6 +75,10 @@ BQABarPlot<-function(rows,data,title,group) {
 winDialog(type = "ok", "Please choose the BQA files for analysis")
 filessrc<-choose.files() 
 
+tidydataset<-DataExtractAll(filessrc)
+tidydataset<-tidydataset[,!names(test) %in% c("Total.Cases.Screened","Total.Assessed","Total.WBN.Performed","Total.VAE.Performed")]
+tidydataset<-melt(tidydataset,id.vars = names(test)[1:19],variable.name = "BCategory")
+tidydataset<-tidydataset[tidydataset$Table.Identifier..A..B.or.C.=="D",]
 
 #create bits for use later
 TablesList<-list()
