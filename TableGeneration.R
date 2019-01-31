@@ -75,6 +75,12 @@ BQABarPlot<-function(rows,data,title,group) {
 winDialog(type = "ok", "Please choose the BQA files for analysis")
 filessrc<-choose.files() 
 
+BCatDesc<-c("Total Number of tests","Number of B1","Number of B2","Number of B3 with atypia not specified",
+  "Number of B3 without atypia","Number of B3 with atypia","Number of B3","Number of B4","Number of B5c","Number of B5b",
+  "Number of B5a","Number of B5")
+BCategory<-c("Total","WBN.B1","WBN.B2","WBN.B3.ns","WBN.B3.wa","WBN.B3.na","WBN.B3","WBN.B4","WBN.B5c","WBN.B5b","WBN.B5a","WBN.B5")
+BCatlookup<-data.frame(BCategory,BCatDesc)
+
 TableNames<-file_path_sans_ext(basename(filessrc))
 tidydataset<-lapply(filessrc,DataExtractAll)
 tidydataset<-mapply(cbind,tidydataset,"Filename"=TableNames,SIMPLIFY = F)
@@ -82,9 +88,21 @@ tidydataset<-bind_rows(tidydataset)
 tidydataset<-tidydataset[,!names(tidydataset) %in% c("Total.Cases.Screened","Total.Assessed","Total.WBN.Performed","Total.VAE.Performed")]
 tidydataset<-melt(tidydataset,id.vars = names(tidydataset)[c(1:19,32)],variable.name = "BCategory")
 tidydataset<-tidydataset[tidydataset$Table.Identifier..A..B.or.C.=="D",]
+tidydataset$Path_pseudo_code<-unlist(lapply(tidydataset$Path_national_code,FindPathCode))
+tidydataset<-inner_join(tidydataset,BCatlookup)
+
+BQAtablescombined<-tidydataset %>% 
+  filter(Row.Identifier==9999) %>%
+  group_by(Filename,Path_pseudo_code,BCatDesc) %>% 
+  summarise(value = sum(value, na.rm = T)) %>%
+  spread(Path_pseudo_code, value)
 
 #create bits for use later
 TablesList<-list()
+
+for (k in TableNames) {
+  TablesList[[k]]<-as_data_frame(BQAtablescombined[BQAtablescombined$Filename==k,2:ncol(BQAtablescombined)])
+}
 
 #define some names for use in the code
 numerators<-c("BoxSelect(bqafilter,10,8),BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,40,17)","BoxSelect(bqafilter,40,17),
