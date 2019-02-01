@@ -91,11 +91,20 @@ tidydataset<-tidydataset[tidydataset$Table.Identifier..A..B.or.C.=="D",]
 tidydataset$Path_pseudo_code<-unlist(lapply(tidydataset$Path_national_code,FindPathCode))
 tidydataset<-inner_join(tidydataset,BCatlookup)
 
-BQAtablescombined<-tidydataset %>% 
-  filter(Row.Identifier==9999) %>%
-  group_by(Filename,Path_pseudo_code,BCatDesc) %>% 
-  summarise(value = sum(value, na.rm = T)) %>%
-  spread(Path_pseudo_code, value)
+#function that takes a data set filters by one variable and groups by multiple variables
+TableGenerator<-function (dataset,filters,colID, ...) {
+  groupcols<-enquos(...)
+  t<-dataset %>% 
+    filter(!!enquo(filters)) %>%
+    group_by(!!!groupcols) %>% 
+    summarise(value = sum(value, na.rm = T)) %>%
+    spread(!!enquo(colID), value)
+  t
+}
+
+BQAtablescombined<-TableGenerator(tidydataset,Row.Identifier==9999,Path_pseudo_code,Filename,Path_pseudo_code,BCatDesc)
+
+test<-TableGenerator(tidydataset,Row.Identifier==c(10,20) & BCategory == 'WBN.B5',Path_pseudo_code,Filename,Path_pseudo_code)
 
 #create bits for use later
 TablesList<-list()
@@ -103,6 +112,14 @@ TablesList<-list()
 for (k in TableNames) {
   TablesList[[k]]<-as_data_frame(BQAtablescombined[BQAtablescombined$Filename==k,2:ncol(BQAtablescombined)])
 }
+
+PLtablescombined<-tidydataset %>% 
+  filter(Row.Identifier==9999) %>%
+  group_by(Filename,Path_pseudo_code,Laboratory_name,BCatDesc) %>% 
+  summarise(value = sum(value, na.rm = T)) %>%
+  spread(Laboratory_name, value)
+
+PLtablescombined2<-TableGenerator(tidydataset,Row.Identifier==9999,Laboratory_name,Filename,Path_pseudo_code,Laboratory_name,BCatDesc)
 
 #define some names for use in the code
 numerators<-c("BoxSelect(bqafilter,10,8),BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,40,17)","BoxSelect(bqafilter,40,17),
