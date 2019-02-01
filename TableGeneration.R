@@ -103,24 +103,22 @@ TableGenerator<-function (dataset,filters,colID, ...) {
 }
 
 BQAtablescombined<-TableGenerator(tidydataset,Row.Identifier==9999,Path_pseudo_code,Filename,Path_pseudo_code,BCatDesc)
-
-test<-TableGenerator(tidydataset,Row.Identifier==c(10,20) & BCategory == 'WBN.B5',Path_pseudo_code,Filename,Path_pseudo_code)
-
-#create bits for use later
+#creates a list of dataframes based on the filename of the data source
 TablesList<-list()
-
 for (k in TableNames) {
-  TablesList[[k]]<-as_data_frame(BQAtablescombined[BQAtablescombined$Filename==k,2:ncol(BQAtablescombined)])
+  TablesList[[k]]<-as_tibble(BQAtablescombined[BQAtablescombined$Filename==k,2:ncol(BQAtablescombined)])
 }
 
-PLtablescombined<-tidydataset %>% 
-  filter(Row.Identifier==9999) %>%
-  group_by(Filename,Path_pseudo_code,Laboratory_name,BCatDesc) %>% 
-  summarise(value = sum(value, na.rm = T)) %>%
-  spread(Laboratory_name, value)
-
-PLtablescombined2<-TableGenerator(tidydataset,Row.Identifier==9999,Laboratory_name,Filename,Path_pseudo_code,Laboratory_name,BCatDesc)
-
+BoxIDVector<-c("1","5","6","7","8","9","28","32","34","36","37","41","42","43","44","46","50","51","53","54")
+#example code that pulls out data by pathologist and laboratory
+#PLtablescombined2<-TableGenerator(tidydataset,Row.Identifier==9999,Laboratory_name,Filename,Path_pseudo_code,Laboratory_name,BCatDesc)
+BoxIDFilters<-c(Row.Identifier==10 & BCategory == 'WBN.B5',Row.Identifier==10 & BCategory == 'WBN.B4',Row.Identifier==10 & BCategory == 'WBN.B3',
+                Row.Identifier==10 & BCategory == 'WBN.B2',Row.Identifier==10 & BCategory == 'WBN.B1',Row.Identifier==10 & BCategory == 'Total',
+                Row.Identifier==40 & BCategory == 'WBN.B5',Row.Identifier==40 & BCategory == 'WBN.B4',Row.Identifier==40 & BCategory == 'WBN.B2',
+                Row.Identifier==40 & BCategory == 'Total',Row.Identifier==60 & BCategory == 'WBN.B5',Row.Identifier==60 & BCategory == 'WBN.B4',
+                Row.Identifier==60 & BCategory == 'WBN.B3',Row.Identifier==60 & BCategory == 'WBN.B2',Row.Identifier==60 & BCategory == 'WBN.B1',
+                Row.Identifier==9999 & BCategory == 'WBN.B5',Row.Identifier==9999 & BCategory == 'WBN.B4',Row.Identifier==9999 & BCategory == 'WBN.B3',
+                Row.Identifier==9999 & BCategory == 'WBN.B1',Row.Identifier==9999 & BCategory == 'Total')
 #define some names for use in the code
 numerators<-c("BoxSelect(bqafilter,10,8),BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,40,17)","BoxSelect(bqafilter,40,17),
               BoxSelect(bqafilter,60,17)","BoxSelect(bqafilter,10,8),BoxSelect(bqafilter,10,12),BoxSelect(bqafilter,10,13),
@@ -133,12 +131,12 @@ denominators<-c("BoxSelect(bqafilter,10,19),BoxSelect(bqafilter,60,8)","BoxSelec
                 BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,9999,8)","BoxSelect(bqafilter,9999,12)-BoxSelect(bqafilter,60,12)",
                 "BoxSelect(bqafilter,9999,13)","BoxSelect(bqafilter,9999,17)","BoxSelect(bqafilter,10,19),BoxSelect(bqafilter,60,8)",
                 "BoxSelect(bqafilter,10,19),BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,60,8),BoxSelect(bqafilter,10,19)")
-allNames<-c("Total Number of tests","Number of B1 (% of total)","Number of B2 (% of total)","Number of B3 with atypia not specified (% B3)",
-            "Number of B3 without atypia (% B3)","Number of B3 with atypia (% B3)","Number of B3 (% of total)",
-            "Number of B4 (% of total)","Number of B5c (% of B5)","Number of B5b (% of B5)","Number of B5a (% of B5)",
-            "Number of B5 (% of total)","Absolute Sensitivity","Specificity (biopsy cases only)",
-            "Specificity (Full)","Complete Sensitivity","PPV (B5)","PPV (B4)","PPV (B3)","Negative Predictive Value",
-            "False Negative Rate","True False Positive Rate","Miss Rate")
+#allNames<-c("Total Number of tests","Number of B1 (% of total)","Number of B2 (% of total)","Number of B3 with atypia not specified (% B3)",
+#            "Number of B3 without atypia (% B3)","Number of B3 with atypia (% B3)","Number of B3 (% of total)",
+#            "Number of B4 (% of total)","Number of B5c (% of B5)","Number of B5b (% of B5)","Number of B5a (% of B5)",
+#            "Number of B5 (% of total)","Absolute Sensitivity","Specificity (biopsy cases only)",
+#            "Specificity (Full)","Complete Sensitivity","PPV (B5)","PPV (B4)","PPV (B3)","Negative Predictive Value",
+#            "False Negative Rate","True False Positive Rate","Miss Rate")
 calcnames<-c("Absolute Sensitivity","Specificity (biopsy cases only)",
             "Specificity (Full)","Complete Sensitivity","PPV (B5)","PPV (B4)","PPV (B3)","Negative Predictive Value",
             "False Negative Rate","True False Positive Rate","Miss Rate")
