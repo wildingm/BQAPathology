@@ -109,16 +109,25 @@ for (k in TableNames) {
   TablesList[[k]]<-as_tibble(BQAtablescombined[BQAtablescombined$Filename==k,2:ncol(BQAtablescombined)])
 }
 
+#This chunk produces a list of data frames that contain the values for the box number identified by BoxIDVector
 BoxIDVector<-c("1","5","6","7","8","9","28","32","34","36","37","41","42","43","44","46","50","51","53","54")
-#example code that pulls out data by pathologist and laboratory
-#PLtablescombined2<-TableGenerator(tidydataset,Row.Identifier==9999,Laboratory_name,Filename,Path_pseudo_code,Laboratory_name,BCatDesc)
-BoxIDFilters<-c(Row.Identifier==10 & BCategory == 'WBN.B5',Row.Identifier==10 & BCategory == 'WBN.B4',Row.Identifier==10 & BCategory == 'WBN.B3',
-                Row.Identifier==10 & BCategory == 'WBN.B2',Row.Identifier==10 & BCategory == 'WBN.B1',Row.Identifier==10 & BCategory == 'Total',
-                Row.Identifier==40 & BCategory == 'WBN.B5',Row.Identifier==40 & BCategory == 'WBN.B4',Row.Identifier==40 & BCategory == 'WBN.B2',
-                Row.Identifier==40 & BCategory == 'Total',Row.Identifier==60 & BCategory == 'WBN.B5',Row.Identifier==60 & BCategory == 'WBN.B4',
-                Row.Identifier==60 & BCategory == 'WBN.B3',Row.Identifier==60 & BCategory == 'WBN.B2',Row.Identifier==60 & BCategory == 'WBN.B1',
-                Row.Identifier==9999 & BCategory == 'WBN.B5',Row.Identifier==9999 & BCategory == 'WBN.B4',Row.Identifier==9999 & BCategory == 'WBN.B3',
-                Row.Identifier==9999 & BCategory == 'WBN.B1',Row.Identifier==9999 & BCategory == 'Total')
+BoxCatIDFilters<-c('WBN.B5','WBN.B4','WBN.B3','WBN.B2','WBN.B1','Total','WBN.B5','WBN.B4','WBN.B2','Total','WBN.B5','WBN.B4',
+                'WBN.B3','WBN.B2','WBN.B1','WBN.B5','WBN.B4','WBN.B3','WBN.B1','Total')
+BoxRowIDFilters=c(10,10,10,10,10,10,40,40,40,40,60,60,60,60,60,9999,9999,9999,9999,9999)
+BoxList<-list()
+for (k in 1:length(BoxIDVector)) {
+  BoxList[[BoxIDVector[k]]]<-TableGenerator(tidydataset,Row.Identifier==BoxRowIDFilters[k] & BCategory==BoxCatIDFilters[k],Path_pseudo_code,Filename,Path_pseudo_code,BCatDesc)
+}
+
+#This section creates dataframes containing the numerators and denominators for the calculated stats based off BoxList
+
+
+
+
+
+
+
+
 #define some names for use in the code
 numerators<-c("BoxSelect(bqafilter,10,8),BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,40,17)","BoxSelect(bqafilter,40,17),
               BoxSelect(bqafilter,60,17)","BoxSelect(bqafilter,10,8),BoxSelect(bqafilter,10,12),BoxSelect(bqafilter,10,13),
