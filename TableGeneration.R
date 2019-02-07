@@ -109,18 +109,18 @@ for (k in TableNames) {
   TablesList[[k]]<-as_tibble(BQAtablescombined[BQAtablescombined$Filename==k,2:ncol(BQAtablescombined)])
 }
 
-#This chunk produces a list of data frames that contain the values for the box number identified by BoxIDVector
+#This chunk produces a list of data frames that contain the values for the BQA box numbers identified by BoxIDVector
 BoxIDVector<-c("1","5","6","7","8","9","28","32","34","36","37","41","42","43","44","46","50","51","53","54")
 BoxCatIDFilters<-c('WBN.B5','WBN.B4','WBN.B3','WBN.B2','WBN.B1','Total','WBN.B5','WBN.B4','WBN.B2','Total','WBN.B5','WBN.B4',
                 'WBN.B3','WBN.B2','WBN.B1','WBN.B5','WBN.B4','WBN.B3','WBN.B1','Total')
 BoxRowIDFilters=c(10,10,10,10,10,10,40,40,40,40,60,60,60,60,60,9999,9999,9999,9999,9999)
 BoxList<-list()
 for (k in 1:length(BoxIDVector)) {
-  BoxList[[BoxIDVector[k]]]<-TableGenerator(tidydataset,Row.Identifier==BoxRowIDFilters[k] & BCategory==BoxCatIDFilters[k],Path_pseudo_code,Filename,Path_pseudo_code,BCatDesc)
+  BoxList[[BoxIDVector[k]]]<-TableGenerator(tidydataset,Row.Identifier==BoxRowIDFilters[k] & BCategory==BoxCatIDFilters[k],Path_pseudo_code,Filename,Path_pseudo_code)
 }
 
 #This section creates dataframes containing the numerators and denominators for the calculated stats based off BoxList
-
+# working code to add parts of the BoxList: BoxList[["1"]][,2:ncol(BoxList[["1"]])]+BoxList[["5"]][,2:ncol(BoxList[["5"]])]
 
 
 
