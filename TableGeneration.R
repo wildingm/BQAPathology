@@ -90,6 +90,7 @@ tidydataset<-melt(tidydataset,id.vars = names(tidydataset)[c(1:19,32)],variable.
 tidydataset<-tidydataset[tidydataset$Table.Identifier..A..B.or.C.=="D",]
 tidydataset$Path_pseudo_code<-unlist(lapply(tidydataset$Path_national_code,FindPathCode))
 tidydataset<-inner_join(tidydataset,BCatlookup)
+tidydataset$value[is.na(tidydataset$value)]<-0
 
 #function that takes a data set filters by one variable and groups by multiple variables
 TableGenerator<-function (dataset,filters,colID, ...) {
@@ -110,10 +111,10 @@ for (k in TableNames) {
 }
 
 #This chunk produces a list of data frames that contain the values for the BQA box numbers identified by BoxIDVector
-BoxIDVector<-c("1","5","6","7","8","9","28","32","34","36","37","41","42","43","44","46","50","51","53","54")
+BoxIDVector<-c("1","5","6","7","8","9","28","32","34","36","37","41","42","43","44","46","50","51","53","54","52")
 BoxCatIDFilters<-c('WBN.B5','WBN.B4','WBN.B3','WBN.B2','WBN.B1','Total','WBN.B5','WBN.B4','WBN.B2','Total','WBN.B5','WBN.B4',
-                'WBN.B3','WBN.B2','WBN.B1','WBN.B5','WBN.B4','WBN.B3','WBN.B1','Total')
-BoxRowIDFilters=c(10,10,10,10,10,10,40,40,40,40,60,60,60,60,60,9999,9999,9999,9999,9999)
+                'WBN.B3','WBN.B2','WBN.B1','WBN.B5','WBN.B4','WBN.B3','WBN.B1','Total','WBN.B2')
+BoxRowIDFilters=c(10,10,10,10,10,10,40,40,40,40,60,60,60,60,60,9999,9999,9999,9999,9999,9999)
 BoxList<-list()
 for (k in 1:length(BoxIDVector)) {
   BoxList[[BoxIDVector[k]]]<-TableGenerator(tidydataset,Row.Identifier==BoxRowIDFilters[k] & BCategory==BoxCatIDFilters[k],Path_pseudo_code,Filename,Path_pseudo_code)
@@ -122,33 +123,83 @@ for (k in 1:length(BoxIDVector)) {
 #This section creates dataframes containing the numerators and denominators for the calculated stats based off BoxList
 # working code to add parts of the BoxList: BoxList[["1"]][,2:ncol(BoxList[["1"]])]+BoxList[["5"]][,2:ncol(BoxList[["5"]])]
 
+calcnames<-c("Absolute Sensitivity","Specificity (biopsy cases only)",
+             "Specificity (Full)","Complete Sensitivity","PPV (B5)","PPV (B4)","PPV (B3)","Negative Predictive Value",
+             "False Negative Rate","True False Positive Rate","Miss Rate")
+calcNumSumBoxes<-list(c("1","37"),"34",c("34","43"),c("1","5","6","37"),"46","50","6","52","7","28",c("7","8"))
+calcDenomSumBoxes<-list(c("9","37"),"36",c("36","42","43","44"),c("9","37"),"46","50","51","52",c("9","37"),c("9","37"),c("9","37"))
 
+#Function that creates a dataframe containing summed data from the BQA box numbers input with a Measure column containing the measure name text
+BQACalcFunSum<-function(MeasureName,BoxNumbers){
+  temp<-data.frame()
+  for (i in BoxNumbers){
+    data<-melt(BoxList[[i]])
+    temp<-temp %>% bind_rows(data)
+  }
+  temp[is.na(temp)]<-0 # probably need to remove NA in tidydataset not here
+  temp<-cbind(Measure = MeasureName,dcast(temp,Filename~variable,sum))
+  temp
+}
 
+tidynumframe<-data.frame()
+tidydenomframe<-data.frame()
+for (i in seq_along(calcnames)) {
+  tidynumframe<-bind_rows(tidynumframe,BQACalcFunSum(calcnames[i],calcNumSumBoxes[[i]]))
+  tidydenomframe<-bind_rows(tidydenomframe,BQACalcFunSum(calcnames[i],calcDenomSumBoxes[[i]]))
+}
 
+### For numerators: PPV (B5) need to subtract "28", for PPV (B4) need to subtract c("32","41"), for Negative Predictive Value need to 
+### subtract "7" from relevant sum boxes.
+subtractNum<-list("28",c("32","41"),"7")
+subtractNumNames<-c("PPV (B5)","PPV (B4)","Negative Predictive Value")
 
+for (i in seq_along(subtractNumNames)) {
+  subframe<-BQACalcFunSum(subtractNumNames[i],subtractNum[[i]])
+  common<-intersect(names(tidynumframe),names(subframe)[-c(1:2)])
+  tidynumframe[tidynumframe$Measure==subtractNumNames[i],names(tidynumframe) %in% common]<-
+    tidynumframe[tidynumframe$Measure==subtractNumNames[i],names(tidynumframe) %in% common] - replace(subframe[common], is.na(subframe[common]),0)
+}
+
+### For denominators: PPV (B4) need to subtract 41 from relevant sumbox
+subframe<-BQACalcFunSum("PPV (B4)","41")
+common<-intersect(names(tidydenomframe),names(subframe)[-c(1:2)])
+tidydenomframe[tidydenomframe$Measure=="PPV (B4)",names(tidydenomframe) %in% common]<-
+  tidydenomframe[tidydenomframe$Measure=="PPV (B4)",names(tidydenomframe) %in% common] - replace(subframe[common], is.na(subframe[common]),0)
+
+### removes unneeded temorary information
+rm(subframe,common,subtractNumNames,subtractNum,calcDenomSumBoxes,calcNumSumBoxes,BCatDesc,BCategory,BoxCatIDFilters,BoxIDVector)
+
+NumList<-list()
+for (k in TableNames) {
+  NumList[[k]]<-as_tibble(tidynumframe[tidynumframe$Filename==k,c(1,3:ncol(tidynumframe))])
+}
+DenomList<-list()
+for (k in TableNames) {
+  DenomList[[k]]<-as_tibble(tidydenomframe[tidydenomframe$Filename==k,c(1,3:ncol(tidydenomframe))])
+}
 
 
 #define some names for use in the code
-numerators<-c("BoxSelect(bqafilter,10,8),BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,40,17)","BoxSelect(bqafilter,40,17),
-              BoxSelect(bqafilter,60,17)","BoxSelect(bqafilter,10,8),BoxSelect(bqafilter,10,12),BoxSelect(bqafilter,10,13),
-              BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,9999,8)-BoxSelect(bqafilter,40,8)",
-              "BoxSelect(bqafilter,9999,12)-BoxSelect(bqafilter,40,12)-BoxSelect(bqafilter,60,12)","BoxSelect(bqafilter,10,13)",
-              "BoxSelect(bqafilter,9999,17)-BoxSelect(bqafilter,10,17)","BoxSelect(bqafilter,10,17)","BoxSelect(bqafilter,40,8)",
-              "BoxSelect(bqafilter,10,17),BoxSelect(bqafilter,10,18)")
-denominators<-c("BoxSelect(bqafilter,10,19),BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,40,19)","BoxSelect(bqafilter,40,19),
-                BoxSelect(bqafilter,60,13),BoxSelect(bqafilter,60,17),BoxSelect(bqafilter,60,18)","BoxSelect(bqafilter,10,19),
-                BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,9999,8)","BoxSelect(bqafilter,9999,12)-BoxSelect(bqafilter,60,12)",
-                "BoxSelect(bqafilter,9999,13)","BoxSelect(bqafilter,9999,17)","BoxSelect(bqafilter,10,19),BoxSelect(bqafilter,60,8)",
-                "BoxSelect(bqafilter,10,19),BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,60,8),BoxSelect(bqafilter,10,19)")
+#numerators<-c("BoxSelect(bqafilter,10,8),BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,40,17)","BoxSelect(bqafilter,40,17),
+#              BoxSelect(bqafilter,60,17)","BoxSelect(bqafilter,10,8),BoxSelect(bqafilter,10,12),BoxSelect(bqafilter,10,13),
+#              BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,9999,8)-BoxSelect(bqafilter,40,8)",
+#              "BoxSelect(bqafilter,9999,12)-BoxSelect(bqafilter,40,12)-BoxSelect(bqafilter,60,12)","BoxSelect(bqafilter,10,13)",
+#              "BoxSelect(bqafilter,9999,17)-BoxSelect(bqafilter,10,17)","BoxSelect(bqafilter,10,17)","BoxSelect(bqafilter,40,8)",
+#              "BoxSelect(bqafilter,10,17),BoxSelect(bqafilter,10,18)")
+#denominators<-c("BoxSelect(bqafilter,10,19),BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,40,19)","BoxSelect(bqafilter,40,19),
+#                BoxSelect(bqafilter,60,13),BoxSelect(bqafilter,60,17),BoxSelect(bqafilter,60,18)","BoxSelect(bqafilter,10,19),
+#                BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,9999,8)","BoxSelect(bqafilter,9999,12)-BoxSelect(bqafilter,60,12)",
+#                "BoxSelect(bqafilter,9999,13)","BoxSelect(bqafilter,9999,17)","BoxSelect(bqafilter,10,19),BoxSelect(bqafilter,60,8)",
+#                "BoxSelect(bqafilter,10,19),BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,60,8),BoxSelect(bqafilter,10,19)")
 #allNames<-c("Total Number of tests","Number of B1 (% of total)","Number of B2 (% of total)","Number of B3 with atypia not specified (% B3)",
 #            "Number of B3 without atypia (% B3)","Number of B3 with atypia (% B3)","Number of B3 (% of total)",
 #            "Number of B4 (% of total)","Number of B5c (% of B5)","Number of B5b (% of B5)","Number of B5a (% of B5)",
 #            "Number of B5 (% of total)","Absolute Sensitivity","Specificity (biopsy cases only)",
 #            "Specificity (Full)","Complete Sensitivity","PPV (B5)","PPV (B4)","PPV (B3)","Negative Predictive Value",
 #            "False Negative Rate","True False Positive Rate","Miss Rate")
-calcnames<-c("Absolute Sensitivity","Specificity (biopsy cases only)",
-            "Specificity (Full)","Complete Sensitivity","PPV (B5)","PPV (B4)","PPV (B3)","Negative Predictive Value",
-            "False Negative Rate","True False Positive Rate","Miss Rate")
+#calcnames<-c("Absolute Sensitivity","Specificity (biopsy cases only)",
+#            "Specificity (Full)","Complete Sensitivity","PPV (B5)","PPV (B4)","PPV (B3)","Negative Predictive Value",
+#            "False Negative Rate","True False Positive Rate","Miss Rate")
 PrimarySortIDHeadings<-c("Clinical_team", "Location_code","Location_name","RA_local_code","RA_local_name", "RA_national_code","Laboratory_code",
                          "Laboratory_name","Path_local_code","Path_local_name","Path_national_code","Loc_method","Radiological_appearance")
 SelectionHeadings<-c(PrimarySortIDHeadings[8],PrimarySortIDHeadings[11:13])
