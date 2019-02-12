@@ -15,33 +15,9 @@ if (!require('ggplot2')) {
   install.packages('ggplot2')
   library('ggplot2')
 }
-
-percent<-function(x,digits=2,format="f") {
-  paste0(formatC(100*x,format=format,digits=digits),"%")
-} #function to change a numerical value format to a percentage
-
-BoxSelect<-function(df,rowID,colID) {
-  Output<-as.numeric(df[df$Row.Identifier==rowID,colID])
-  Output<-replace(Output,is.na(Output),0)
-  if (is.numeric(Output) == F) {
-    Output<-0
-  }
-  Output
-} #selects the relevant box from the BQA file when passed the data frame 
-#containing the data, the row ID (10, 20, 30, 40, 50, 60 or 9999) and the relevant column ID
-
-DataExtract <- function (filename) {
-  datasource<-read.csv(filename, skip = 3,stringsAsFactors = F)
-  datasource<-datasource[-nrow(datasource),1:23] #remove last row (states end of data), and extra columns with calculated fields
-  if(!selector=="Local_NBSS_Code") {
-    datasource<-separate(datasource,col = "Primary.Sort.Value",into = PrimarySortIDHeadings, sep = "\\*") #expands the Primary.Sort.Value field 
-    datasourceselected<-datasource[,c(1,match(selector,names(datasource)),15:35)]
-    colnames(datasourceselected)[2]<-"Primary.Sort.Value"
-  } else {
-    datasourceselected<-datasource
-  }
-  datasourceselected$Tests.or.Clients..T.or.C.<-gsub(TRUE,"T",datasourceselected$Tests.or.Clients..T.or.C.)
-  datasourceselected
+if (!require('scales')) {
+  install.packages('scales')
+  library('scales')
 }
 
 DataExtractAll <- function (filename) {
@@ -80,6 +56,9 @@ BCatDesc<-c("Total Number of tests","Number of B1","Number of B2","Number of B3 
   "Number of B5a","Number of B5")
 BCategory<-c("Total","WBN.B1","WBN.B2","WBN.B3.ns","WBN.B3.wa","WBN.B3.na","WBN.B3","WBN.B4","WBN.B5c","WBN.B5b","WBN.B5a","WBN.B5")
 BCatlookup<-data.frame(BCategory,BCatDesc)
+BCatOrder<-c("Total Number of tests","Number of B5","Number of B4","Number of B3","Number of B2","Number of B1","Number of B5a",
+             "Number of B5b","Number of B5c","Number of B3 with atypia","Number of B3 without atypia",
+             "Number of B3 with atypia not specified")
 
 TableNames<-file_path_sans_ext(basename(filessrc))
 tidydataset<-lapply(filessrc,DataExtractAll)
@@ -103,11 +82,18 @@ TableGenerator<-function (dataset,filters,colID, ...) {
   t
 }
 
+### Probably need to work out how to distinguish between the 2 types of report here and do something to decide which filters to use
+
+### ### Loop through the different grouping options here. Eventually to produce a single spreadsheet containing all the desired data
+
 BQAtablescombined<-TableGenerator(tidydataset,Row.Identifier==9999,Path_pseudo_code,Filename,Path_pseudo_code,BCatDesc)
+BQAtablescombined<-left_join(data.frame("BCatDesc"=BCatOrder),BQAtablescombined)
+BQAtablescombined$BCatDesc<-as.character(BQAtablescombined$BCatDesc)
+
 #creates a list of dataframes based on the filename of the data source
 TablesList<-list()
 for (k in TableNames) {
-  TablesList[[k]]<-as_tibble(BQAtablescombined[BQAtablescombined$Filename==k,2:ncol(BQAtablescombined)])
+  TablesList[[k]]<-as_tibble(BQAtablescombined[BQAtablescombined$Filename==k,c(1,3:ncol(BQAtablescombined))])
 }
 
 #This chunk produces a list of data frames that contain the values for the BQA box numbers identified by BoxIDVector
@@ -119,9 +105,6 @@ BoxList<-list()
 for (k in 1:length(BoxIDVector)) {
   BoxList[[BoxIDVector[k]]]<-TableGenerator(tidydataset,Row.Identifier==BoxRowIDFilters[k] & BCategory==BoxCatIDFilters[k],Path_pseudo_code,Filename,Path_pseudo_code)
 }
-
-#This section creates dataframes containing the numerators and denominators for the calculated stats based off BoxList
-# working code to add parts of the BoxList: BoxList[["1"]][,2:ncol(BoxList[["1"]])]+BoxList[["5"]][,2:ncol(BoxList[["5"]])]
 
 calcnames<-c("Absolute Sensitivity","Specificity (biopsy cases only)",
              "Specificity (Full)","Complete Sensitivity","PPV (B5)","PPV (B4)","PPV (B3)","Negative Predictive Value",
@@ -157,18 +140,21 @@ for (i in seq_along(subtractNumNames)) {
   subframe<-BQACalcFunSum(subtractNumNames[i],subtractNum[[i]])
   common<-intersect(names(tidynumframe),names(subframe)[-c(1:2)])
   tidynumframe[tidynumframe$Measure==subtractNumNames[i],names(tidynumframe) %in% common]<-
-    tidynumframe[tidynumframe$Measure==subtractNumNames[i],names(tidynumframe) %in% common] - replace(subframe[common], is.na(subframe[common]),0)
+    tidynumframe[tidynumframe$Measure==subtractNumNames[i],names(tidynumframe) %in% common] - replace(subframe[common],
+                                                                                                      is.na(subframe[common]),0)
 }
 
 ### For denominators: PPV (B4) need to subtract 41 from relevant sumbox
 subframe<-BQACalcFunSum("PPV (B4)","41")
 common<-intersect(names(tidydenomframe),names(subframe)[-c(1:2)])
 tidydenomframe[tidydenomframe$Measure=="PPV (B4)",names(tidydenomframe) %in% common]<-
-  tidydenomframe[tidydenomframe$Measure=="PPV (B4)",names(tidydenomframe) %in% common] - replace(subframe[common], is.na(subframe[common]),0)
+  tidydenomframe[tidydenomframe$Measure=="PPV (B4)",names(tidydenomframe) %in% common] - replace(subframe[common],
+                                                                                                 is.na(subframe[common]),0)
 
-### removes unneeded temorary information
+### removes unneeded temporary information from enviroment
 rm(subframe,common,subtractNumNames,subtractNum,calcDenomSumBoxes,calcNumSumBoxes,BCatDesc,BCategory,BoxCatIDFilters,BoxIDVector)
 
+### creates lists of the numerator and denominator values separated by filename
 NumList<-list()
 for (k in TableNames) {
   NumList[[k]]<-as_tibble(tidynumframe[tidynumframe$Filename==k,c(1,3:ncol(tidynumframe))])
@@ -178,28 +164,68 @@ for (k in TableNames) {
   DenomList[[k]]<-as_tibble(tidydenomframe[tidydenomframe$Filename==k,c(1,3:ncol(tidydenomframe))])
 }
 
+### clears NA values coerced by bind_rows by replacing with 0
+tidynumframe[is.na(tidynumframe)]<-0
+tidydenomframe[is.na(tidydenomframe)]<-0
+### calculates the proportions for the calculated statistics and removes NaN values created by 0/0
+tidycalcframe<-cbind(tidynumframe[,1:2],tidynumframe[,3:ncol(tidynumframe)]/tidydenomframe[,3:ncol(tidydenomframe)])
+tidycalcframe[is.na(tidycalcframe)]<-0
+names(tidycalcframe)[names(tidycalcframe)=="Measure"]<-"BCatDesc"
+names(tidydenomframe)[names(tidydenomframe)=="Measure"]<-"BCatDesc"
+tidydenomframemelted<-melt(tidydenomframe,id.vars = c("BCatDesc","Filename"))
+names(tidydenomframemelted)[names(tidydenomframemelted)=="value"]<-"denomvalue"
+tidycalcframemelted<-melt(tidycalcframe,id.vars = c("BCatDesc","Filename"))
+tidycalcframemelted$value<-percent_format(accuracy = .01)(tidycalcframemelted$value)
+tidycalcframemelted<-inner_join(tidycalcframemelted,tidydenomframemelted)
+tidycalcframemelted$value[tidycalcframemelted$denomvalue==0]<-"No Cases"
+tidycalcframemelted<-select(tidycalcframemelted,-denomvalue)
+tidycalcframeperc<-dcast(tidycalcframemelted,Filename+BCatDesc~variable,alue.var="value")
 
-#define some names for use in the code
-#numerators<-c("BoxSelect(bqafilter,10,8),BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,40,17)","BoxSelect(bqafilter,40,17),
-#              BoxSelect(bqafilter,60,17)","BoxSelect(bqafilter,10,8),BoxSelect(bqafilter,10,12),BoxSelect(bqafilter,10,13),
-#              BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,9999,8)-BoxSelect(bqafilter,40,8)",
-#              "BoxSelect(bqafilter,9999,12)-BoxSelect(bqafilter,40,12)-BoxSelect(bqafilter,60,12)","BoxSelect(bqafilter,10,13)",
-#              "BoxSelect(bqafilter,9999,17)-BoxSelect(bqafilter,10,17)","BoxSelect(bqafilter,10,17)","BoxSelect(bqafilter,40,8)",
-#              "BoxSelect(bqafilter,10,17),BoxSelect(bqafilter,10,18)")
-#denominators<-c("BoxSelect(bqafilter,10,19),BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,40,19)","BoxSelect(bqafilter,40,19),
-#                BoxSelect(bqafilter,60,13),BoxSelect(bqafilter,60,17),BoxSelect(bqafilter,60,18)","BoxSelect(bqafilter,10,19),
-#                BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,9999,8)","BoxSelect(bqafilter,9999,12)-BoxSelect(bqafilter,60,12)",
-#                "BoxSelect(bqafilter,9999,13)","BoxSelect(bqafilter,9999,17)","BoxSelect(bqafilter,10,19),BoxSelect(bqafilter,60,8)",
-#                "BoxSelect(bqafilter,10,19),BoxSelect(bqafilter,60,8)","BoxSelect(bqafilter,60,8),BoxSelect(bqafilter,10,19)")
-#allNames<-c("Total Number of tests","Number of B1 (% of total)","Number of B2 (% of total)","Number of B3 with atypia not specified (% B3)",
-#            "Number of B3 without atypia (% B3)","Number of B3 with atypia (% B3)","Number of B3 (% of total)",
-#            "Number of B4 (% of total)","Number of B5c (% of B5)","Number of B5b (% of B5)","Number of B5a (% of B5)",
-#            "Number of B5 (% of total)","Absolute Sensitivity","Specificity (biopsy cases only)",
-#            "Specificity (Full)","Complete Sensitivity","PPV (B5)","PPV (B4)","PPV (B3)","Negative Predictive Value",
-#            "False Negative Rate","True False Positive Rate","Miss Rate")
-#calcnames<-c("Absolute Sensitivity","Specificity (biopsy cases only)",
-#            "Specificity (Full)","Complete Sensitivity","PPV (B5)","PPV (B4)","PPV (B3)","Negative Predictive Value",
-#            "False Negative Rate","True False Positive Rate","Miss Rate")
+CalcList <- list()
+for (k in TableNames) {
+  CalcList[[k]]<-as_tibble(tidycalcframeperc[tidycalcframeperc$Filename==k,c(1,3:ncol(tidycalcframeperc))])
+}
+
+### sets up list containing the ordered data IN PROGRESS
+TablesList <- lapply(TablesList,function(df){select(df,BCatDesc,everything())})
+TablesList <- lapply(TablesList, function(df){df[,order(-df[1,2:ncol(df)])]})
+
+TotalList <- list()
+for (k in TableNames) {
+  TotalList[[k]]<-bind_rows(mutate_all(TablesList[[k]],as.character),CalcList[[k]])
+}
+
+### This code adds a workbook and pastes the data in the different lists into a sheet for each filename in TableNames
+
+### ### Once the loop through primary sort codes is added this needs updating so there is a sheet for each combination of 
+### ###   filename and primary sort ID
+        ### Move workbook addition outside loop
+
+xl.workbook.add()
+
+for (k in seq_along(TableNames)){
+  xl.sheet.add(TableNames[k])
+  xl.write(TablesList[[k]],xl.get.excel()[["ActiveSheet"]]$Cells(1,1),row.names = FALSE)
+  xl.write("Numerators",xl.get.excel()[["ActiveSheet"]]$Cells(101,1),row.names = FALSE)
+  xl.write(NumList[[k]],xl.get.excel()[["ActiveSheet"]]$Cells(102,1),row.names = FALSE)
+  xl.write("Denominators",xl.get.excel()[["ActiveSheet"]]$Cells(115,1),row.names = FALSE)
+  xl.write(DenomList[[k]],xl.get.excel()[["ActiveSheet"]]$Cells(116,1),row.names = FALSE)
+}
+
+###leave outside the loop through all primary sort codes
+xl.sheet.delete("Sheet1")
+### work out how to name the file as it will now contain everything  
+### xl.workbook.save(paste(selector,"generated",Sys.Date()))
+
+
+
+
+
+
+
+
+
+
 PrimarySortIDHeadings<-c("Clinical_team", "Location_code","Location_name","RA_local_code","RA_local_name", "RA_national_code","Laboratory_code",
                          "Laboratory_name","Path_local_code","Path_local_name","Path_national_code","Loc_method","Radiological_appearance")
 SelectionHeadings<-c(PrimarySortIDHeadings[8],PrimarySortIDHeadings[11:13])
