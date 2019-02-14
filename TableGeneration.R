@@ -26,10 +26,10 @@ DataExtractAll <- function (filename) {
   datasource<-separate(datasource,col = "Primary.Sort.Value",into = PrimarySortIDHeadings, sep = "\\*") #expands the Primary.Sort.Value field 
 }
 
-BQABarPlot<-function(rows,data,title,group) {
-  chart_data<-melt(chartpropframe[rows,],id.var=data)
-  chart_data$BQA_Measure<-gsub("Number of ","",chart_data$BQA_Measure)
-  BQAplot<-ggplot(chart_data, aes(y=value, x = variable,fill = BQA_Measure)) +
+BQABarPlot<-function(dataframe,rows,data,title,group) {
+  chart_data<-melt(dataframe[rows,],id.var=data)
+  chart_data$BCatDesc<-gsub("Number of ","",chart_data$BCatDesc)
+  BQAplot<-ggplot(chart_data, aes(y=value, x = variable,fill = BCatDesc)) +
     geom_bar(stat="identity",position = "stack") +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 0.95, size = 12),
@@ -41,7 +41,7 @@ BQABarPlot<-function(rows,data,title,group) {
           axis.title.y = element_text(face = "bold", colour = "black", size = 14),
           legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.5, "cm"), 
           legend.text = element_text(size = 12)) + scale_fill_brewer(palette="Set1") +
-    labs(title = paste("Proportion of tests broken down by",title,"\n data displayed by", group), x = group) +
+    labs(title = paste("Proportion of chartframes broken down by",title,"\n data displayed by", group), x = group) +
     scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
                        labels = c("100%","80%","60%","40%","20%","0%"))  #+ 
     #guides(fill = guide_legend(nrow = 2))
@@ -51,12 +51,12 @@ BQABarPlot<-function(rows,data,title,group) {
 winDialog(type = "ok", "Please choose the BQA files for analysis")
 filessrc<-choose.files() 
 
-BCatDesc<-c("Total Number of tests","Number of B1","Number of B2","Number of B3 with atypia not specified",
+BCatDesc<-c("Total Number of chartframes","Number of B1","Number of B2","Number of B3 with atypia not specified",
   "Number of B3 without atypia","Number of B3 with atypia","Number of B3","Number of B4","Number of B5c","Number of B5b",
   "Number of B5a","Number of B5")
 BCategory<-c("Total","WBN.B1","WBN.B2","WBN.B3.ns","WBN.B3.wa","WBN.B3.na","WBN.B3","WBN.B4","WBN.B5c","WBN.B5b","WBN.B5a","WBN.B5")
 BCatlookup<-data.frame(BCategory,BCatDesc)
-BCatOrder<-c("Total Number of tests","Number of B5","Number of B4","Number of B3","Number of B2","Number of B1","Number of B5a",
+BCatOrder<-c("Total Number of chartframes","Number of B5","Number of B4","Number of B3","Number of B2","Number of B1","Number of B5a",
              "Number of B5b","Number of B5c","Number of B3 with atypia","Number of B3 without atypia",
              "Number of B3 with atypia not specified")
 
@@ -89,12 +89,6 @@ TableGenerator<-function (dataset,filters,colID, ...) {
 BQAtablescombined<-TableGenerator(tidydataset,Row.Identifier==9999,Path_pseudo_code,Filename,Path_pseudo_code,BCatDesc)
 BQAtablescombined<-left_join(data.frame("BCatDesc"=BCatOrder),BQAtablescombined)
 BQAtablescombined$BCatDesc<-as.character(BQAtablescombined$BCatDesc)
-
-#creates a list of dataframes based on the filename of the data source
-TablesList<-list()
-for (k in TableNames) {
-  TablesList[[k]]<-as_tibble(BQAtablescombined[BQAtablescombined$Filename==k,c(1,3:ncol(BQAtablescombined))])
-}
 
 #This chunk produces a list of data frames that contain the values for the BQA box numbers identified by BoxIDVector
 BoxIDVector<-c("1","5","6","7","8","9","28","32","34","36","37","41","42","43","44","46","50","51","53","54","52")
@@ -154,6 +148,9 @@ tidydenomframe[tidydenomframe$Measure=="PPV (B4)",names(tidydenomframe) %in% com
 ### removes unneeded temporary information from enviroment
 rm(subframe,common,subtractNumNames,subtractNum,calcDenomSumBoxes,calcNumSumBoxes,BCatDesc,BCategory,BoxCatIDFilters,BoxIDVector)
 
+names(tidynumframe)[names(tidynumframe)=="Measure"]<-"BCatDesc"
+names(tidydenomframe)[names(tidydenomframe)=="Measure"]<-"BCatDesc"
+
 ### creates lists of the numerator and denominator values separated by filename
 NumList<-list()
 for (k in TableNames) {
@@ -171,7 +168,6 @@ tidydenomframe[is.na(tidydenomframe)]<-0
 tidycalcframe<-cbind(tidynumframe[,1:2],tidynumframe[,3:ncol(tidynumframe)]/tidydenomframe[,3:ncol(tidydenomframe)])
 tidycalcframe[is.na(tidycalcframe)]<-0
 names(tidycalcframe)[names(tidycalcframe)=="Measure"]<-"BCatDesc"
-names(tidydenomframe)[names(tidydenomframe)=="Measure"]<-"BCatDesc"
 tidydenomframemelted<-melt(tidydenomframe,id.vars = c("BCatDesc","Filename"))
 names(tidydenomframemelted)[names(tidydenomframemelted)=="value"]<-"denomvalue"
 tidycalcframemelted<-melt(tidycalcframe,id.vars = c("BCatDesc","Filename"))
@@ -183,16 +179,30 @@ tidycalcframeperc<-dcast(tidycalcframemelted,Filename+BCatDesc~variable,alue.var
 
 CalcList <- list()
 for (k in TableNames) {
-  CalcList[[k]]<-as_tibble(tidycalcframeperc[tidycalcframeperc$Filename==k,c(1,3:ncol(tidycalcframeperc))])
+  CalcList[[k]]<-as_tibble(tidycalcframeperc[tidycalcframeperc$Filename==k,c(2:ncol(tidycalcframeperc))])
 }
 
-### sets up list containing the ordered data IN PROGRESS
+#creates a list of dataframes based on the filename of the data source
+TablesList<-list()
+for (k in TableNames) {
+  TablesList[[k]]<-as_tibble(BQAtablescombined[BQAtablescombined$Filename==k,c(1,3:ncol(BQAtablescombined))])
+}
+
+### Moves the BCatDesc column to the start of the dataframes
 TablesList <- lapply(TablesList,function(df){select(df,BCatDesc,everything())})
-TablesList <- lapply(TablesList, function(df){df[,order(-df[1,2:ncol(df)])]})
+### sets up list containing the ordered data IN PROGRESS
+for (i in seq_along(TablesList)) {
+  TablesList[[i]]<-TablesList[[i]][,c(1,1+order(-as.data.frame(TablesList[[i]][1,2:ncol(TablesList[[i]])])))]
+}
 
 TotalList <- list()
 for (k in TableNames) {
   TotalList[[k]]<-bind_rows(mutate_all(TablesList[[k]],as.character),CalcList[[k]])
+}
+
+for (i in seq_along(TotalList)) {
+  DenomList[[i]]<-DenomList[[i]][names(TotalList[[i]])]
+  NumList[[i]]<-NumList[[i]][names(TotalList[[i]])]
 }
 
 ### This code adds a workbook and pastes the data in the different lists into a sheet for each filename in TableNames
@@ -201,322 +211,70 @@ for (k in TableNames) {
 ### ###   filename and primary sort ID
         ### Move workbook addition outside loop
 
+chartframeplot<-BQABarPlot(TotalList[[1]],2:6,"BCatDesc","B category", group)
+
+### creates a dataframe containing the proportion of the different B5 categories in place of thenumbers of cases
+chartframe<-TotalList[[1]]
+for (i in c("Number of B5a","Number of B5b","Number of B5c")){
+  chartframe[chartframe$BCatDesc==i,2:ncol(chartframe)]<-
+    as.numeric(chartframe[chartframe$BCatDesc==i,2:ncol(chartframe)])/as.numeric(chartframe[chartframe$BCatDesc=="Number of B5",2:ncol(chartframe)])
+}
+for (i in c("Number of B3 with atypia","Number of B3 without atypia","Number of B3 with atypia not specified")){
+  chartframe[chartframe$BCatDesc==i,2:ncol(chartframe)]<-
+    as.numeric(chartframe[chartframe$BCatDesc==i,2:ncol(chartframe)])/as.numeric(chartframe[chartframe$BCatDesc=="Number of B3",2:ncol(chartframe)])
+}
+for (i in c("Number of B5","Number of B4","Number of B3","Number of B2","Number of B1")) {
+  chartframe[chartframe$BCatDesc==i,2:ncol(chartframe)]<-
+    as.numeric(chartframe[chartframe$BCatDesc==i,2:ncol(chartframe)])/as.numeric(chartframe[chartframe$BCatDesc=="Total Number of tests",2:ncol(chartframe)])
+}
+
+#names of the plots for entry to the excel sheet
+chartnames<-c("BcatPlot","B5Plot","B3Plot")
+#number of rows for use in rows in BQABarPlot
+chartrownums<-list(c(1:5),c(1:3),c(1:3))
+#row 'names' to filter to to generate the chart data
+chartrows<-list(c("Number of B5","Number of B4","Number of B3","Number of B2","Number of B1"),c("Number of B5a","Number of B5b","Number of B5c"),c("Number of B3 with atypia","Number of B3 without atypia","Number of B3 with atypia not specified"))
+#'data' strings for use in BQABarPlot
+chartdatastring<-c("B Category","B5 sub-category","B3 sub-category")
+
+#creates the list to put the plots
+PlotList<-list()
+
+#for each of the plots as identified by chartnames
+for (i in TableNames) {
+  tempPlotList<-list()
+  for (j in seq_along(chartnames)){
+    chart_data<-chartframe[chartframe$BCatDesc %in% chartrows[[j]],] #filter chartframe to only include the rows required
+    chart_data[is.na(chart_data)]<-0 #change any remaining NA values to 0
+    chart_data[2:ncol(chart_data)]<-as.numeric(unlist(chart_data[2:ncol(chart_data)])) #change the values from char to numeric
+    ###at this point there should be a datafrime in wide format ready to plug into the chart generation formula
+    tempPlotList[[chartnames[j]]]<-BQABarPlot(chart_data,chartrownums[[j]],'BCatDesc',chartdatastring[j],"pathologist")
+  }
+  PlotList[[i]]<-tempPlotList
+} 
+
 xl.workbook.add()
 
 for (k in seq_along(TableNames)){
   xl.sheet.add(TableNames[k])
-  xl.write(TablesList[[k]],xl.get.excel()[["ActiveSheet"]]$Cells(1,1),row.names = FALSE)
+  xl.write(TotalList[[k]],xl.get.excel()[["ActiveSheet"]]$Cells(1,1),row.names = FALSE)
+  print(PlotList[[k]]$BcatPlot)
+  xl[a26] = current.graphics(width=1000)
+  print(PlotList[[k]]$B5Plot)
+  xl[a51] = current.graphics(width=1000)
+  print(PlotList[[k]]$B3Plot)
+  xl[a76] = current.graphics(width=1000)
   xl.write("Numerators",xl.get.excel()[["ActiveSheet"]]$Cells(101,1),row.names = FALSE)
   xl.write(NumList[[k]],xl.get.excel()[["ActiveSheet"]]$Cells(102,1),row.names = FALSE)
   xl.write("Denominators",xl.get.excel()[["ActiveSheet"]]$Cells(115,1),row.names = FALSE)
   xl.write(DenomList[[k]],xl.get.excel()[["ActiveSheet"]]$Cells(116,1),row.names = FALSE)
 }
 
+
 ###leave outside the loop through all primary sort codes
 xl.sheet.delete("Sheet1")
 ### work out how to name the file as it will now contain everything  
 ### xl.workbook.save(paste(selector,"generated",Sys.Date()))
 
-
-
-
-
-
-
-
-
-
-PrimarySortIDHeadings<-c("Clinical_team", "Location_code","Location_name","RA_local_code","RA_local_name", "RA_national_code","Laboratory_code",
-                         "Laboratory_name","Path_local_code","Path_local_name","Path_national_code","Loc_method","Radiological_appearance")
-SelectionHeadings<-c(PrimarySortIDHeadings[8],PrimarySortIDHeadings[11:13])
-  
-checker<-read.csv(filessrc[1], skip = 2,stringsAsFactors = F)
-if (!grepl("*",checker[1,2],fixed=T)) {
-  selector<-"Local_NBSS_Code"
-  group<-"NBSS pathologist code"
-  winDialog(type = "ok", "Please choose if the data is to be analysed by tests or clients by typing the relevant numerical value into the console screen below")
-  ToC<-select.list(c("Tests","Clients"))
-  if (ToC == "Tests") {
-    ToC<-"T"
-  } else {
-    ToC<-"C"
-  }
-  #### this will need to be passed to the code below somehow when subsetting the data
-  #### checker$Tests.or.Clients..T.or.C.<-gsub(TRUE,"T",checker$Tests.or.Clients..T.or.C.)
-} else {
-  winDialog(type = "ok", "Please choose the primary sort ID by typing the relevant numerical value into the console screen below")
-  ToC<-"T"
-}
-rm(checker)
-
-RepeatExtract<-"YES"
-
-while(RepeatExtract == "YES") {
-  
-  if (!exists("selector")) {
-    selector<-select.list(SelectionHeadings)
-    group<-c("laboratory", "pathologist", "localisation method", "radiological appearance")[SelectionHeadings==selector]
-  }
-  TableNames<-file_path_sans_ext(basename(filessrc))
-  filessrcData<-lapply(filessrc,DataExtract)
-  
-  if (selector == "Path_national_code") {
-    for (k in 1:length(filessrcData)) {
-      filessrcData[[k]][2]<-unlist(lapply(filessrcData[[k]][[2]],FindPathCode))
-    } ### renames all pathologists in the list based on their psedonym code or sets them to UNK Pathologist
-  } 
-  
-  xl.workbook.add()
-  
-  for (k in 1:length(filessrcData)){
-    
-    numFrame<-data.frame(stringsAsFactors = FALSE)
-    denomFrame<-data.frame(stringsAsFactors = FALSE)
-    casesFrame<-data.frame(stringsAsFactors = FALSE)
-    allsummary<-NULL
-    
-    bqadf<-filessrcData[[k]] %>%
-      group_by(Primary.Sort.ID,Primary.Sort.Value,Secondary.Sort.ID,Secondary.Sort.Value,Tests.or.Clients..T.or.C.,Table.Identifier..A..B.or.C.,Row.Identifier) %>%
-      summarise(WBN.B5 = sum(WBN.B5, na.rm=T),WBN.B5a = sum(WBN.B5a, na.rm=T),WBN.B5b = sum(WBN.B5b, na.rm=T),WBN.B5c = sum(WBN.B5c, na.rm=T),
-                WBN.B4 = sum(WBN.B4, na.rm=T),WBN.B3 = sum(WBN.B3, na.rm=T),WBN.B3.wa = sum(WBN.B3.wa, na.rm=T),WBN.B3.na = sum(WBN.B3.na, na.rm=T),
-                WBN.B3.ns = sum(WBN.B3.ns, na.rm=T),WBN.B2 = sum(WBN.B2, na.rm=T),WBN.B1 = sum(WBN.B1, na.rm=T),Total = sum(Total, na.rm=T))
-    bqadf<-bqadf[bqadf$Table.Identifier..A..B.or.C.=="D",] # excludes the table ID other than D
-    bqadf<-bqadf[bqadf$Tests.or.Clients..T.or.C.==ToC,] #excludes any rows where tests or clients is other than the specified value
-    
-    paths<-as.character(unique(bqadf$Primary.Sort.Value)) # creates a unique list Primary Sort Value
-    # following code creates a data frame for the currently selected BQA data containing the numbers of cases for each pathologist
-    # for each of the pathology categories
-    for (j in 19:8) {
-      casesBox = NULL
-      for (i in paths) {
-        bqafilter<-bqadf[bqadf$Primary.Sort.Value %in% i,]
-        casesBox = append(casesBox, BoxSelect(bqafilter,9999,j))
-      }
-      casesBox<-unlist(casesBox)
-      casesFrame<-rbind(casesFrame,casesBox)
-    }
-    
-    colnames(casesFrame)<-paths #names the columns of the dataframe by pathologist code
-    colnames(casesFrame)[ncol(casesFrame)]<-"TOT"   #renames the last column as the TOT column
-    
-    # following code creates 2 data frames for the currently selected BQA data containing the numerator and denominators for each 
-    # pathologist for each of the calculated stats
-    for (j in 1:length(numerators)) {
-      numStore = NULL
-      denomStore = NULL
-      for (i in paths){
-        numSum = NULL
-        denomSum = NULL
-        bqafilter<-bqadf[(bqadf$Primary.Sort.Value %in% i),]
-        numSum<-eval(parse(text = paste(numSum,"sum(",numerators[j],")")))
-        numStore<-append(numStore,numSum)
-        numStore<-replace(numStore,is.na(numStore),0)
-        denomSum<-eval(parse(text = paste(denomSum,"sum(",denominators[j],")")))
-        denomStore<-append(denomStore,denomSum)
-      }
-      numFrame<-rbind(numFrame,numStore,stringsAsFactors = FALSE)
-      denomFrame<-rbind(denomFrame,denomStore,stringsAsFactors = FALSE)
-    }
-    colnames(numFrame)<-paths                       #names the columns of the dataframe by pathologist code
-    colnames(numFrame)[ncol(numFrame)]<-"TOT"       #renames the last column as the TOT column
-    colnames(denomFrame)<-paths                     #names the columns of the dataframe by pathologist code
-    colnames(denomFrame)[ncol(denomFrame)]<-"TOT"   #renames the last column as the TOT column
-    calcSummarydf<-numFrame/denomFrame
-    calcSummarydf[is.na(calcSummarydf)]<-NA
-    calcSummarydf<-as.data.frame(lapply(calcSummarydf,percent),stringsAsFactors = FALSE)
-    calcSummarydf<-replace(calcSummarydf,calcSummarydf==" NA%","No Cases")
-    if (selector != "Path_national_code") {
-      paths[nchar(paths)==0]<-paste0("UNK_",selector)
-    }
-    colnames(calcSummarydf)<-paths
-    colnames(calcSummarydf)[ncol(calcSummarydf)]<-"TOT"
-    colnames(casesFrame)<-paths
-    colnames(casesFrame)[ncol(casesFrame)]<-"TOT"
-    casesFrame<-casesFrame[,order(-casesFrame[1,])]    
-    allsummary<-rbind(casesFrame,calcSummarydf)
-    allsummary<-cbind("BQA_Measure"=allNames,allsummary)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
-    TablesList[[TableNames[k]]]<-allsummary
-    
-    ###produces proportions for calculated stats
-    calcframe<-numFrame/denomFrame
-    calcframe[is.na(calcframe)]<-0
-    ###produces full stats table as values
-    chartFrame<-rbind(casesFrame,calcframe)
-    chartFrame<-cbind("BQA_Measure"=allNames,chartFrame)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
-    ###produces full stats table as values
-    propFrame<-casesFrame
-    for (i in 9:11) {propFrame[i,]<-propFrame[i,]/propFrame[12,]}
-    for (i in 4:6) {propFrame[i,]<-propFrame[i,]/propFrame[7,]}
-    for (i in c(2,3,7,8,12)) {propFrame[i,]<-propFrame[i,]/propFrame[1,]}
-    propFrame[1,]<-propFrame[1,]/propFrame[1,]
-    propFrame[is.na(propFrame)]<-0
-    chartpropframe<-rbind(propFrame,calcframe)
-    chartpropframe<-cbind("BQA_Measure"=allNames,chartpropframe)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
-
-    ###produces bar charts for the report output
-    BCatPlot<-BQABarPlot(2:6,"BQA_Measure","B category", group)
-    B5Plot<-BQABarPlot(7:9,"BQA_Measure","B5 sub-category", group)
-    B3Plot<-BQABarPlot(10:12,"BQA_Measure","B3 sub-category", group)
-    
-    ###Prints the charts to an excel workbook
-    xl.sheet.add(TableNames[k])
-    xl.write(allsummary,xl.get.excel()[["ActiveSheet"]]$Cells(1,1),row.names = FALSE)
-    print(BCatPlot)
-    xl[a26] = current.graphics(width=1000)
-    print(B5Plot)
-    xl[a51] = current.graphics(width=1000)
-    print(B3Plot)
-    xl[a76] = current.graphics(width=1000)
-    
-    ###Adds tables containing the numerators and denominators for the calculated stats
-    numFrame<-numFrame[,order(match(names(numFrame),names(allsummary)[2:ncol(allsummary)]))]
-    numFrame<-cbind("BQA_Measure"=calcnames,numFrame)
-    denomFrame<-denomFrame[,order(match(names(denomFrame),names(allsummary)[2:ncol(allsummary)]))]
-    denomFrame<-cbind("BQA_Measure"=calcnames,denomFrame)
-    xl.write("Numerators",xl.get.excel()[["ActiveSheet"]]$Cells(101,1),row.names = FALSE)
-    xl.write(numFrame,xl.get.excel()[["ActiveSheet"]]$Cells(102,1),row.names = FALSE)
-    xl.write("Denominators",xl.get.excel()[["ActiveSheet"]]$Cells(115,1),row.names = FALSE)
-    xl.write(denomFrame,xl.get.excel()[["ActiveSheet"]]$Cells(116,1),row.names = FALSE)
-  }  
-  
-  ###### Produces Table using combined data from all selected files
-  
-  filessrcDataTotal<-bind_rows(filessrcData)
-  
-  numFrame<-data.frame(stringsAsFactors = FALSE)
-  denomFrame<-data.frame(stringsAsFactors = FALSE)
-  casesFrame<-data.frame(stringsAsFactors = FALSE)
-  allsummary<-NULL
-  
-  bqadf<-filessrcDataTotal %>%
-    group_by(Primary.Sort.ID,Primary.Sort.Value,Secondary.Sort.ID,Secondary.Sort.Value,Tests.or.Clients..T.or.C.,Table.Identifier..A..B.or.C.,Row.Identifier) %>%
-    summarise(WBN.B5 = sum(WBN.B5, na.rm=T),WBN.B5a = sum(WBN.B5a, na.rm=T),WBN.B5b = sum(WBN.B5b, na.rm=T),WBN.B5c = sum(WBN.B5c, na.rm=T),
-              WBN.B4 = sum(WBN.B4, na.rm=T),WBN.B3 = sum(WBN.B3, na.rm=T),WBN.B3.wa = sum(WBN.B3.wa, na.rm=T),WBN.B3.na = sum(WBN.B3.na, na.rm=T),
-              WBN.B3.ns = sum(WBN.B3.ns, na.rm=T),WBN.B2 = sum(WBN.B2, na.rm=T),WBN.B1 = sum(WBN.B1, na.rm=T),Total = sum(Total, na.rm=T))
-  bqadf<-bqadf[bqadf$Table.Identifier..A..B.or.C.=="D",] # excludes the table ID other than D
-  bqadf<-bqadf[bqadf$Tests.or.Clients..T.or.C.==ToC,] #excludes any rows where tests or clients is other than the specified value
-  
-  paths<-as.character(unique(bqadf$Primary.Sort.Value)) # creates a unique list Primary Sort Value
-  
-  ### produces table of pathologists
-  if (selector == "Path_national_code") {
-    allinfo<-lapply(filessrc,DataExtractAll)
-    allinfo<-bind_rows(allinfo)
-    pathlook<-Pathologists
-    pathtable<-data.frame("NBSS_national_code"=unique(allinfo$Path_national_code),"NBSS_local_name"=NA,"National_P_code_(if_known)"=NA,"National_name_(if_known)"=NA,stringsAsFactors = FALSE)
-    for (i in 1:nrow(pathtable)){
-      pathtable$NBSS_local_name[i]<-allinfo$Path_local_name[match(pathtable$NBSS_national_code[i],allinfo$Path_national_code)]
-      pathtable$National_P_code_.if_known.[i]<-pathlook$P.Code[match(pathtable$NBSS_national_code[i],pathlook$Pathologist.GMC.number)]
-      pathtable$National_name_.if_known.[i]<-pathlook$Pathologist.Full.Name[match(pathtable$NBSS_national_code[i],pathlook$Pathologist.GMC.number)]    
-    }
-    rm(allinfo)
-    rm(pathlook)
-    write.csv(pathtable,"Pathologist details for selected files.csv",row.names = FALSE)
-  }
-  
-  # following code creates a data frame for the currently selected BQA data containing the numbers of cases for each pathologist
-  # for each of the pathology categories
-  for (j in 19:8) {
-    casesBox = NULL
-    for (i in paths) {
-      bqafilter<-bqadf[bqadf$Primary.Sort.Value %in% i,]
-      casesBox = append(casesBox, BoxSelect(bqafilter,9999,j))
-    }
-    casesBox<-unlist(casesBox)
-    casesFrame<-rbind(casesFrame,casesBox)
-  }
-  colnames(casesFrame)<-paths #names the columns of the dataframe by pathologist code
-  colnames(casesFrame)[ncol(casesFrame)]<-"TOT"   #renames the last column as the TOT column
-  
-  # following code creates 2 data frames for the currently selected BQA data containing the numerator and denominators for each 
-  # pathologist for each of the calculated stats
-  for (j in 1:length(numerators)) {
-    numStore = NULL
-    denomStore = NULL
-    for (i in paths){
-      numSum = NULL
-      denomSum = NULL
-      bqafilter<-bqadf[(bqadf$Primary.Sort.Value %in% i),]
-      numSum<-eval(parse(text = paste(numSum,"sum(",numerators[j],")")))
-      numStore<-append(numStore,numSum)
-      numStore<-replace(numStore,is.na(numStore),0)
-      denomSum<-eval(parse(text = paste(denomSum,"sum(",denominators[j],")")))
-      denomStore<-append(denomStore,denomSum)
-    }
-    numFrame<-rbind(numFrame,numStore,stringsAsFactors = FALSE)
-    denomFrame<-rbind(denomFrame,denomStore,stringsAsFactors = FALSE)
-  }
-  colnames(numFrame)<-paths                       #names the columns of the dataframe by pathologist code
-  colnames(numFrame)[ncol(numFrame)]<-"TOT"       #renames the last column as the TOT column
-  colnames(denomFrame)<-paths                     #names the columns of the dataframe by pathologist code
-  colnames(denomFrame)[ncol(denomFrame)]<-"TOT"   #renames the last column as the TOT column
-  calcSummarydf<-numFrame/denomFrame
-  calcSummarydf[is.na(calcSummarydf)]<-NA
-  calcSummarydf<-as.data.frame(lapply(calcSummarydf,percent),stringsAsFactors = FALSE)
-  calcSummarydf<-replace(calcSummarydf,calcSummarydf==" NA%","No Cases")
-  if (selector != "Path_national_code") {
-    paths[nchar(paths)==0]<-paste0("UNK_",selector)
-  }
-  colnames(calcSummarydf)<-paths
-  colnames(calcSummarydf)[ncol(calcSummarydf)]<-"TOT"
-  colnames(casesFrame)<-paths
-  colnames(casesFrame)[ncol(casesFrame)]<-"TOT"
-  casesFrame<-casesFrame[,order(-casesFrame[1,])]
-  allsummary<-rbind(casesFrame,calcSummarydf)
-  allsummary<-cbind("BQA_Measure"=allNames,allsummary)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
-  
-  ###produces proportions for calculated stats
-  calcframe<-numFrame/denomFrame
-  calcframe[is.na(calcframe)]<-0
-  ###produces full stats table as values
-  chartFrame<-rbind(casesFrame,calcframe)
-  chartFrame<-cbind("BQA_Measure"=allNames,chartFrame)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
-  ###produces full stats table as values
-  propFrame<-casesFrame
-  for (i in 9:11) {propFrame[i,]<-propFrame[i,]/propFrame[12,]}
-  for (i in 4:6) {propFrame[i,]<-propFrame[i,]/propFrame[7,]}
-  for (i in c(2,3,7,8,12)) {propFrame[i,]<-propFrame[i,]/propFrame[1,]}
-  propFrame[1,]<-propFrame[1,]/propFrame[1,]
-  propFrame[is.na(propFrame)]<-0
-  chartpropframe<-rbind(propFrame,calcframe)
-  chartpropframe<-cbind("BQA_Measure"=allNames,chartpropframe)[c(1,12,8,7,3,2,11:9,6:4,13:23),]
-
-  ###produces bar charts for the report output
-  BCatPlot<-BQABarPlot(2:6,"BQA_Measure","B category", group)
-  B5Plot<-BQABarPlot(7:9,"BQA_Measure","B5 sub-category", group)
-  B3Plot<-BQABarPlot(10:12,"BQA_Measure","B3 sub-category", group)
-  
-  ###Prints the charts to an excel workbook
-  xl.sheet.add()
-  xl.sheet.name("Total")
-  xl.write(allsummary,xl.get.excel()[["ActiveSheet"]]$Cells(1,1),row.names = FALSE)
-  print(BCatPlot)
-  xl[a26] = current.graphics(width=1000)
-  print(B5Plot)
-  xl[a51] = current.graphics(width=1000)
-  print(B3Plot)
-  xl[a76] = current.graphics(width=1000)
-  
-  ###Adds tables containing the numerators and denominators for the calculated stats
-  numFrame<-numFrame[,order(match(names(numFrame),names(allsummary)[2:ncol(allsummary)]))]
-  numFrame<-cbind("BQA_Measure"=calcnames,numFrame)
-  denomFrame<-denomFrame[,order(match(names(denomFrame),names(allsummary)[2:ncol(allsummary)]))]
-  denomFrame<-cbind("BQA_Measure"=calcnames,denomFrame)
-  xl.write("Numerators",xl.get.excel()[["ActiveSheet"]]$Cells(101,1),row.names = FALSE)
-  xl.write(numFrame,xl.get.excel()[["ActiveSheet"]]$Cells(102,1),row.names = FALSE)
-  xl.write("Denominators",xl.get.excel()[["ActiveSheet"]]$Cells(115,1),row.names = FALSE)
-  xl.write(denomFrame,xl.get.excel()[["ActiveSheet"]]$Cells(116,1),row.names = FALSE)
-
-  ### remove and save 
-  xl.sheet.delete("Sheet1")
-  xl.workbook.save(paste(selector,"generated",Sys.Date()))
-  
-  if(!selector=="Local_NBSS_Code") {
-    RepeatExtract<-winDialog(type = "yesno", "Do you wish to extract data for another primary sort value? If yes please enter the relevant numerical value in the console below.")
-  } else {
-    RepeatExtract<-"NO"
-  }
-  rm(selector)
-}
 rm(Pathologists)
 options(warn = oldw)
