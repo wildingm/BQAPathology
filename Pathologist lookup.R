@@ -26,7 +26,9 @@ if (!require('excel.link')) {
 
 Pathologists<-xl.read.file("\\\\phe.gov.uk\\Health & Wellbeing\\HAW\\Quality Assurance\\QA SHARED\\Breast\\Data\\National pathology audit 2013-16\\CONFIDENTIAL P-Code look up\\Pathologist Codes BQA.xlsx",password = "M4r5hma11oW")
 Pathologists<-filter(Pathologists,Pathologists$P.Code != "") ### removes empty rows
-
+PCodes<-xl.read.file("\\\\phe.gov.uk\\Health & Wellbeing\\HAW\\Quality Assurance\\QA SHARED\\Breast\\Data\\National pathology audit 2013-16\\CONFIDENTIAL P-Code look up\\P_Codes.xlsx",password = "M4r5hma11oW")
+PCodesUnused<-filter(PCodes,is.na(PCodes$Used))
+  
 FindPathCode <- function(NationalCode) {
   if (is.na(NationalCode)) {
     NewCode<-"Total"
@@ -42,20 +44,14 @@ FindPathCode <- function(NationalCode) {
 }
 
 AssignCode <- function(GMCCode) {
-  PCodes<-xl.read.file("\\\\phe.gov.uk\\Health & Wellbeing\\HAW\\Quality Assurance\\QA SHARED\\Breast\\Data\\National pathology audit 2013-16\\CONFIDENTIAL P-Code look up\\P_Codes.xlsx",password = "M4r5hma11oW")
-  PCodesUnused<-filter(PCodes,is.na(PCodes$Used))
-  Pathologists<-xl.read.file("\\\\phe.gov.uk\\Health & Wellbeing\\HAW\\Quality Assurance\\QA SHARED\\Breast\\Data\\National pathology audit 2013-16\\CONFIDENTIAL P-Code look up\\Pathologist Codes BQA.xlsx",password = "M4r5hma11oW")
-  Pathologists<-filter(Pathologists,Pathologists$P.Code != "") ### removes empty rows
-  ###Select a code
+  ### select a code
   newcode<-sample(PCodesUnused$P.Code,1)
   if (GMCCode %in% Pathologists$Pathologist.GMC.number) {
     print(paste("GMC Code",GMCCode,"is already present in the list of pathologists with code", Pathologists$P.Code[Pathologists$Pathologist.GMC.number==GMCCode],"- no action performed"))
   } else {  
-    ###Add GMC code and P.Code to Pathologists data frame and YES to PCode data frame
+    ### Add GMC code and P.Code to Pathologists data frame and YES to PCode data frame
     Pathologists<-rbind(Pathologists,c(NA,newcode,NA,GMCCode,NA,NA,NA))
     PCodes[PCodes$P.Code==newcode,2]<-"YES"
-    xl.save.file(Pathologists, "\\\\phe.gov.uk\\Health & Wellbeing\\HAW\\Quality Assurance\\QA SHARED\\Breast\\Data\\National pathology audit 2013-16\\CONFIDENTIAL P-Code look up\\Pathologist Codes BQA.xlsx", row.names = FALSE, password = "M4r5hma11oW")
-    xl.save.file(PCodes, "\\\\phe.gov.uk\\Health & Wellbeing\\HAW\\Quality Assurance\\QA SHARED\\Breast\\Data\\National pathology audit 2013-16\\CONFIDENTIAL P-Code look up\\P_Codes.xlsx", row.names = FALSE, password = "M4r5hma11oW")
     print(paste("GMC code",GMCCode,"has been added to the list of pathologists with code", newcode))
   }
   newcode
@@ -93,9 +89,9 @@ while(CheckFile=="YES") {
   }
   CheckFile <- winDialog(type = "yesno", "Do you want to check another file?")
 }
-rm(checksource)
-rm(checksourceselected)
-rm(checkcode)
-rm(CheckFile)
-rm(codeslist)
+
+xl.save.file(Pathologists, "\\\\phe.gov.uk\\Health & Wellbeing\\HAW\\Quality Assurance\\QA SHARED\\Breast\\Data\\National pathology audit 2013-16\\CONFIDENTIAL P-Code look up\\Pathologist Codes BQA.xlsx", row.names = FALSE, password = "M4r5hma11oW")
+xl.save.file(PCodes, "\\\\phe.gov.uk\\Health & Wellbeing\\HAW\\Quality Assurance\\QA SHARED\\Breast\\Data\\National pathology audit 2013-16\\CONFIDENTIAL P-Code look up\\P_Codes.xlsx", row.names = FALSE, password = "M4r5hma11oW")
+
+rm(checksource,checksourceselected,checkcode,CheckFile,codeslist,PCodes)
 
