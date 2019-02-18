@@ -133,21 +133,21 @@ xl.workbook.add()
 
 ### double up the loop to go through either tests/clients or the different categories.
 
-for (TC in length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
-  tidydataset<-tidydataset[tidydataset$Tests.or.Clients..T.or.C.==TCpicker[TC],]
+for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
+  tidydatasetuse<-tidydataset[tidydataset$Tests.or.Clients..T.or.C.==TCpicker[TC],]
   
   for (CC in 1:length(group)) {
     
     if (group[CC] == "Radiological_appearance") {
-      BQAtablescombined<-TableGenerator(tidydataset,Row.Identifier==9999,Radiological_appearance,Filename,Radiological_appearance,BCatDesc)
+      BQAtablescombined<-TableGenerator(tidydatasetuse,Row.Identifier==9999,Radiological_appearance,Filename,Radiological_appearance,BCatDesc)
     } else if (group[CC] == "Path_pseudo_code") {
-      BQAtablescombined<-TableGenerator(tidydataset,Row.Identifier==9999,Path_pseudo_code,Filename,Path_pseudo_code,BCatDesc)
+      BQAtablescombined<-TableGenerator(tidydatasetuse,Row.Identifier==9999,Path_pseudo_code,Filename,Path_pseudo_code,BCatDesc)
     } else if (group[CC] == "Laboratory_name") {
-      BQAtablescombined<-TableGenerator(tidydataset,Row.Identifier==9999,Laboratory_name,Filename,Laboratory_name,BCatDesc)
+      BQAtablescombined<-TableGenerator(tidydatasetuse,Row.Identifier==9999,Laboratory_name,Filename,Laboratory_name,BCatDesc)
     } else if (group[CC] == "Loc_method") {
-      BQAtablescombined<-TableGenerator(tidydataset,Row.Identifier==9999,Loc_method,Filename,Loc_method,BCatDesc)
+      BQAtablescombined<-TableGenerator(tidydatasetuse,Row.Identifier==9999,Loc_method,Filename,Loc_method,BCatDesc)
     } else {
-      BQAtablescombined<-TableGenerator(tidydataset,Row.Identifier==9999,Primary_Sort_Value,Filename,Primary_Sort_Value,BCatDesc)
+      BQAtablescombined<-TableGenerator(tidydatasetuse,Row.Identifier==9999,Primary_Sort_Value,Filename,Primary_Sort_Value,BCatDesc)
     }
     
     BQAtablescombined<-left_join(data.frame("BCatDesc"=BCatOrder),BQAtablescombined)
@@ -157,15 +157,15 @@ for (TC in length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
     BoxList<-list()
     for (k in 1:length(BoxIDVector)) {
       if (group[CC] == "Radiological_appearance") {
-        BoxList[[BoxIDVector[k]]]<-TableGenerator(tidydataset,Row.Identifier==BoxRowIDFilters[k] & BCategory==BoxCatIDFilters[k],Radiological_appearance,Filename,Radiological_appearance)
+        BoxList[[BoxIDVector[k]]]<-TableGenerator(tidydatasetuse,Row.Identifier==BoxRowIDFilters[k] & BCategory==BoxCatIDFilters[k],Radiological_appearance,Filename,Radiological_appearance)
       } else if (group[CC] == "Path_pseudo_code") {
-        BoxList[[BoxIDVector[k]]]<-TableGenerator(tidydataset,Row.Identifier==BoxRowIDFilters[k] & BCategory==BoxCatIDFilters[k],Path_pseudo_code,Filename,Path_pseudo_code)
+        BoxList[[BoxIDVector[k]]]<-TableGenerator(tidydatasetuse,Row.Identifier==BoxRowIDFilters[k] & BCategory==BoxCatIDFilters[k],Path_pseudo_code,Filename,Path_pseudo_code)
       } else if (group[CC] == "Laboratory_name") {
-        BoxList[[BoxIDVector[k]]]<-TableGenerator(tidydataset,Row.Identifier==BoxRowIDFilters[k] & BCategory==BoxCatIDFilters[k],Laboratory_name,Filename,Laboratory_name)
+        BoxList[[BoxIDVector[k]]]<-TableGenerator(tidydatasetuse,Row.Identifier==BoxRowIDFilters[k] & BCategory==BoxCatIDFilters[k],Laboratory_name,Filename,Laboratory_name)
       } else if (group[CC] == "Loc_method") {
-        BoxList[[BoxIDVector[k]]]<-TableGenerator(tidydataset,Row.Identifier==BoxRowIDFilters[k] & BCategory==BoxCatIDFilters[k],Loc_method,Filename,Loc_method)
+        BoxList[[BoxIDVector[k]]]<-TableGenerator(tidydatasetuse,Row.Identifier==BoxRowIDFilters[k] & BCategory==BoxCatIDFilters[k],Loc_method,Filename,Loc_method)
       } else {
-        BoxList[[BoxIDVector[k]]]<-TableGenerator(tidydataset,Row.Identifier==BoxRowIDFilters[k] & BCategory==BoxCatIDFilters[k],Primary_Sort_Value,Filename,Primary_Sort_Value)
+        BoxList[[BoxIDVector[k]]]<-TableGenerator(tidydatasetuse,Row.Identifier==BoxRowIDFilters[k] & BCategory==BoxCatIDFilters[k],Primary_Sort_Value,Filename,Primary_Sort_Value)
       }
     }
     
@@ -301,10 +301,9 @@ for (TC in length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
   }
 }
 
-###leave outside the loop through all primary sort codes
 xl.sheet.delete("Sheet1")
-### work out how to name the file as it will now contain everything  
 xl.workbook.save(paste("SQAS BQA report generated",Sys.Date()))
+
 ### removes unneeded temporary information from enviroment
 rm(subframe,common,subtractNumNames,subtractNum,calcDenomSumBoxes,calcNumSumBoxes,BCatDesc,BCategory,BoxCatIDFilters,
    BoxIDVector,chartframe,chartrownums,chartrows,chart_data,chartframeplot,oldfilters,newfilters,checker)
