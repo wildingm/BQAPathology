@@ -41,7 +41,7 @@ BQABarPlot<-function(dataframe,rows,data,title,group) {
           axis.title.y = element_text(face = "bold", colour = "black", size = 14),
           legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.5, "cm"), 
           legend.text = element_text(size = 12)) + scale_fill_brewer(palette="Set1") +
-    labs(title = paste("Proportion of tests broken down by",title,"\n data displayed by", group), x = group) +
+    labs(title = paste("Proportion of",tolower(oldfilters[TC]),"broken down by",title,"\n data displayed by", group), x = group) +
     scale_y_continuous(name = "Percentage of total",breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
                        labels = c("100%","80%","60%","40%","20%","0%"))  #+ 
     #guides(fill = guide_legend(nrow = 2))
