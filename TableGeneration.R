@@ -104,6 +104,8 @@ TCpicker<-c("T","C")
 ### extracts the filenames from filessrc
 TableNames<-file_path_sans_ext(basename(filessrc))
 
+xl.workbook.add()
+
 ### reads the first file in the filenames and identifies if it is a BSIS extract or not
 checker<-read.csv(filessrc[1], skip = 2,stringsAsFactors = F)
 checker<-checker[1,2]
@@ -113,14 +115,25 @@ if (!grepl("*",checker,fixed=T)) { #if there is no * in the primary sort code th
 } else {
   group<-newfilters
   PrimarySortIDHeadings<-c("Clinical_team", "Location_code","Location_name","RA_local_code","RA_local_name", "RA_national_code","Laboratory_code",
-                         "Laboratory_name","Path_local_code","Path_local_name","Path_national_code","Loc_method","Radiological_appearance")
+                           "Laboratory_name","Path_local_code","Path_local_name","Path_national_code","Loc_method","Radiological_appearance")
+  allinfo<-lapply(filessrc,DataExtractAll)
+  allinfo<-bind_rows(allinfo)
+  pathlook<-Pathologists
+  pathtable<-data.frame("NBSS_national_code"=unique(allinfo$Path_national_code),"NBSS_local_name"=NA,"National_P_code_(if_known)"=NA,"National_name_(if_known)"=NA,stringsAsFactors = FALSE)
+  for (i in 1:nrow(pathtable)){
+    pathtable$NBSS_local_name[i]<-allinfo$Path_local_name[match(pathtable$NBSS_national_code[i],allinfo$Path_national_code)]
+    pathtable$National_P_code_.if_known.[i]<-pathlook$P.Code[match(pathtable$NBSS_national_code[i],pathlook$Pathologist.GMC.number)]
+    pathtable$National_name_.if_known.[i]<-pathlook$Pathologist.Full.Name[match(pathtable$NBSS_national_code[i],pathlook$Pathologist.GMC.number)]    
+  }
+  rm(allinfo)
+  rm(pathlook)
+  xl.sheet.add("Pathologist details")
+  xl.write(pathtable,xl.get.excel()[["ActiveSheet"]]$Cells(1,1),row.names = FALSE)
 }
 
 tidydataset<-lapply(filessrc,DataExtractAll)
 tidydataset<-mapply(cbind,tidydataset,"Filename"=TableNames,SIMPLIFY = F)
 tidydataset<-bind_rows(tidydataset)
-
-
 tidydataset<-tidydataset[,!names(tidydataset) %in% c("Total.Cases.Screened","Total.Assessed","Total.WBN.Performed","Total.VAE.Performed")]
 tidydataset<-melt(tidydataset,id.vars = names(tidydataset)[c(1:which(colnames(tidydataset)=="Row.Identifier"),which(colnames(tidydataset)=="Filename"))],variable.name = "BCategory")
 tidydataset<-tidydataset[tidydataset$Table.Identifier..A..B.or.C.=="D",]
@@ -129,15 +142,12 @@ tidydataset<-inner_join(tidydataset,BCatlookup)
 tidydataset$value[is.na(tidydataset$value)]<-0
 tidydataset$Tests.or.Clients..T.or.C.<-gsub(TRUE,"T",tidydataset$Tests.or.Clients..T.or.C.)
 
-xl.workbook.add()
-
 ### double up the loop to go through either tests/clients or the different categories.
 
 for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
   tidydatasetuse<-tidydataset[tidydataset$Tests.or.Clients..T.or.C.==TCpicker[TC],]
   
   for (CC in 1:length(group)) {
-    
     if (group[CC] == "Radiological_appearance") {
       BQAtablescombined<-TableGenerator(tidydatasetuse,Row.Identifier==9999,Radiological_appearance,Filename,Radiological_appearance,BCatDesc)
     } else if (group[CC] == "Path_pseudo_code") {
@@ -149,11 +159,10 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
     } else {
       BQAtablescombined<-TableGenerator(tidydatasetuse,Row.Identifier==9999,Primary_Sort_Value,Filename,Primary_Sort_Value,BCatDesc)
     }
-    
     BQAtablescombined<-left_join(data.frame("BCatDesc"=BCatOrder),BQAtablescombined)
     BQAtablescombined$BCatDesc<-as.character(BQAtablescombined$BCatDesc)
     
-    #This chunk produces a list of data frames that contain the values for the BQA box numbers identified by BoxIDVector
+    ###This chunk produces a list of data frames that contain the values for the BQA box numbers identified by BoxIDVector
     BoxList<-list()
     for (k in 1:length(BoxIDVector)) {
       if (group[CC] == "Radiological_appearance") {
@@ -306,7 +315,8 @@ xl.workbook.save(paste("SQAS BQA report generated",Sys.Date()))
 
 ### removes unneeded temporary information from enviroment
 rm(subframe,common,subtractNumNames,subtractNum,calcDenomSumBoxes,calcNumSumBoxes,BCatDesc,BCategory,BoxCatIDFilters,
-   BoxIDVector,chartframe,chartrownums,chartrows,chart_data,chartframeplot,oldfilters,newfilters,checker)
+   BoxIDVector,chartframe,chartrownums,chartrows,chart_data,chartframeplot,oldfilters,newfilters,checker,allinfo,pathlook,
+   pathtable,PCodesUnused)
 
 rm(Pathologists)
 options(warn = oldw)
