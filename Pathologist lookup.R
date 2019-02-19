@@ -3,6 +3,10 @@
 ###                           Identifying unknown pathologists
 ###                           Updating list of pathologists with provided data
 
+if (!require('purrr')) {
+  install.packages('purrr')
+  library('purrr')
+}
 if (!require('dplyr')) {
   install.packages('dplyr')
   library('dplyr')
