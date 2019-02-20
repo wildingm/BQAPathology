@@ -107,8 +107,8 @@ TableNames<-file_path_sans_ext(basename(filessrc))
 xl.workbook.add()
 
 ### reads the first file in the filenames and identifies if it is a BSIS extract or not
-checker<-read.csv(filessrc[1], skip = 2,stringsAsFactors = F)
-checker<-checker[1,2]
+checker<-read.csv(filessrc[1], skip = 3,stringsAsFactors = F)
+checker<-checker[2,2]
 if (!grepl("*",checker,fixed=T)) { #if there is no * in the primary sort code this identifies if the data is not BSIS
   group<-"NBSS pathologist code"
   PrimarySortIDHeadings<-"Primary_Sort_Value"
