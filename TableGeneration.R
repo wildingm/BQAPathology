@@ -23,12 +23,30 @@ if (!require('scales')) {
 }
 
 DataExtractAll <- function (filename) {
+  # Extracts breast screening pathology data from the specified filename so long as it is a BQA file extracted from NBSS as a CSV file
+  #
+  # Args:
+  #   filename: A string of the path to the file containing the data
+  #
+  # Returns:
+  #   A dataframe containing the relevant rows of the BQA data
   datasource <- read.csv(filename, skip = 3, stringsAsFactors = F)
   datasource <- datasource[-nrow(datasource), 1:23] #remove last row (states end of data), and extra columns with calculated fields
   datasource <- separate(datasource, col = "Primary.Sort.Value", into = PrimarySortIDHeadings, sep = "\\*") #expands the Primary.Sort.Value field 
 }
 
 BQABarPlot <- function(dataframe, rows, data, title, group) {
+  # Generates a stacked bar chart using the ggplot2 package
+  #
+  # Args:
+  #   dataframe: A dataframe containing the BQA data to be used in the chart
+  #   rows: The rows to extract from the dataframe to use for the chart
+  #   data: The column name to use for the id.var in melting the dataset
+  #   title: A string containing B category information to use for the chart title
+  #   group: A string containing information about the data split to use for the chart title
+  #
+  # Returns:
+  #   A plot object that generates a stacked bar chart based on the Args inputted
   chart_data <- melt(dataframe[rows, ], id.var=data)
   chart_data$BCatDesc <- gsub("Number of ", "", chart_data$BCatDesc)
   BQAplot <- ggplot(chart_data, aes(y=value, x = variable, fill = BCatDesc)) +
@@ -48,20 +66,38 @@ BQABarPlot <- function(dataframe, rows, data, title, group) {
                        labels = c("100%", "80%", "60%", "40%", "20%", "0%"))  
   BQAplot
 }
-#Function that creates a dataframe containing summed data from the BQA box numbers input with a Measure column containing the measure name text
+
 BQACalcFunSum <- function(MeasureName, BoxNumbers) {
+  # Creates a dataframe containing summed data from the BQA box numbers input with a Measure column containing the measure name text
+  #
+  # Args:
+  #   MeasureName: The name of the BQA measure to be selected
+  #   BoxNumbers: The BQA box numbers to include in the final value
+  #
+  # Returns:
+  #   A dataframe containing the number of cases that match the inputs
   temp <- data.frame()
   for (i in BoxNumbers) {
     data <- melt(BoxList[[i]])
     temp <- temp %>% bind_rows(data)
   }
-  temp[is.na(temp)] <- 0 # probably need to remove NA in tidydataset not here
+  temp[is.na(temp)] <- 0 # changes NA values to 0
   temp <- cbind(Measure = MeasureName, dcast(temp, Filename~variable, sum))
   temp
 }
 
 #function that takes a data set filters by one variable and groups by multiple variables
 TableGenerator <- function (dataset, filters, colID, ...) {
+  # Generates a dataframe filtered by one variable and grouped by user specified variables
+  #
+  # Args:
+  #   dataset: The source dataset
+  #   filters: A string specifying the filters to apply to dataset
+  #   colID: The column ID's to use in spread
+  #   ...: Strings to use to group the filtered data
+  #
+  # Returns:
+  #   A dataframe containing filtered, grouped and summarised data based on the arguments supplied
   groupcols <- enquos(...)
   t <- dataset %>% 
     filter(!!enquo(filters)) %>%
@@ -158,7 +194,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
   for (CC in 1:length(group)) {
     if (group[CC] == "Radiological_appearance") {
       BQAtablescombined <- TableGenerator(tidydatasetuse, Row.Identifier==9999, Radiological_appearance,
-                                          Filename, Radiological_appearance,BCatDesc)
+                                          Filename, Radiological_appearance, BCatDesc)
     } else if (group[CC] == "Path_pseudo_code") {
       BQAtablescombined <- TableGenerator(tidydatasetuse, Row.Identifier==9999, Path_pseudo_code, Filename, Path_pseudo_code, BCatDesc)
     } else if (group[CC] == "Laboratory_name") {
