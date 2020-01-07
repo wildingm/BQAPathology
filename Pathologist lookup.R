@@ -78,7 +78,7 @@ CheckFile<-winDialog(type = "yesno", "Do you want to check a BQA csv file for ne
 
 while(CheckFile=="YES") {
   filessrc<-choose.files() 
-  checksource<-read.csv(filessrc, skip = 2)
+  checksource<-read.csv(filessrc, skip = 3)
   checksource<-checksource[-nrow(checksource),1:23] #remove last row (states end of data), and extra columns with calculated fields
   checksource<-separate(checksource,col = Primary.Sort.Value,into = PrimarySortIDHeadings, sep = "\\*") #expands the Primary.Sort.Value field 
   checksourceselected<-checksource[,c(1,match("Path_national_code",names(checksource)),15:35)]
@@ -93,6 +93,8 @@ while(CheckFile=="YES") {
       }
     }
   }
+  Pathologists<-xl.read.file("\\\\phe.gov.uk\\Health & Wellbeing\\HAW\\Quality Assurance\\QA SHARED\\Breast\\Data\\National pathology audit 2013-16\\CONFIDENTIAL P-Code look up\\Pathologist Codes BQA.xlsx",password = "M4r5hma11oW")
+  Pathologists<-filter(Pathologists,Pathologists$P.Code != "") ### removes empty rows
   CheckFile <- winDialog(type = "yesno", "Do you want to check another file?")
 }
 rm(checksource)
@@ -100,4 +102,5 @@ rm(checksourceselected)
 rm(checkcode)
 rm(CheckFile)
 rm(codeslist)
+
 
