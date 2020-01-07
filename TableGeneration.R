@@ -86,7 +86,6 @@ BQACalcFunSum <- function(MeasureName, BoxNumbers) {
   temp
 }
 
-#function that takes a data set filters by one variable and groups by multiple variables
 TableGenerator <- function (dataset, filters, colID, ...) {
   # Generates a dataframe filtered by one variable and grouped by user specified variables
   #
@@ -147,10 +146,11 @@ TableNames <- file_path_sans_ext(basename(filessrc))
 
 xl.workbook.add()
 
-### reads the first file in the filenames and identifies if it is a BSIS extract or not
+# Reads the first file in the filenames and identifies if it is a BSIS extract or not, assigns information for downstream processing 
+# depending on if ithe file is BSIS style or not
 checker <- read.csv(filessrc[1], skip = 3,stringsAsFactors = F)
 checker <- checker[2, 2]
-if (!grepl("*", checker,fixed=T)) { #if there is no * in the primary sort code this identifies if the data is not BSIS
+if (!grepl("*", checker, fixed=T)) { #if there is no * in the primary sort code this identifies if the data is not BSIS
   group <- "NBSS pathologist code"
   PrimarySortIDHeadings <- "Primary_Sort_Value"
 } else {
@@ -158,21 +158,25 @@ if (!grepl("*", checker,fixed=T)) { #if there is no * in the primary sort code t
   PrimarySortIDHeadings <- c("Clinical_team", "Location_code", "Location_name", "RA_local_code", "RA_local_name", "RA_national_code",
                              "Laboratory_code", "Laboratory_name", "Path_local_code", "Path_local_name", "Path_national_code",
                              "Loc_method", "Radiological_appearance")
-  allinfo <- lapply(filessrc, DataExtractAll)
+  
+# Extracts the data from the files selected and extracts the pathologist data based on GMC code
+  allinfo <- lapply(filessrc, DataExtractAll) 
   allinfo <- bind_rows(allinfo)
   pathlook <- Pathologists
-  pathtable <- data.frame("NBSS_national_code"=unique(allinfo$Path_national_code), "NBSS_local_name" = NA, "National_P_code_(if_known)" = NA,
-                          "National_name_(if_known)" = NA, stringsAsFactors = FALSE)
+  pathtable <- data.frame("NBSS_national_code" = unique(allinfo$Path_national_code), "NBSS_local_name" = NA, 
+                          "National_P_code_(if_known)" = NA, "National_name_(if_known)" = NA, stringsAsFactors = FALSE)
   for (i in 1:nrow(pathtable)) {
     pathtable$NBSS_local_name[i] <- allinfo$Path_local_name[match(pathtable$NBSS_national_code[i], allinfo$Path_national_code)]
     pathtable$National_P_code_.if_known.[i] <- pathlook$P.Code[match(pathtable$NBSS_national_code[i], pathlook$Pathologist.GMC.number)]
-    pathtable$National_name_.if_known.[i] <- pathlook$Pathologist.Full.Name[match(pathtable$NBSS_national_code[i], pathlook$Pathologist.GMC.number)]
+    pathtable$National_name_.if_known.[i] <- pathlook$Pathologist.Full.Name[match(pathtable$NBSS_national_code[i], 
+                                                                                  pathlook$Pathologist.GMC.number)]
   }
   rm(allinfo, pathlook)
   xl.sheet.add("Pathologist details")
   xl.write(pathtable, xl.get.excel()[["ActiveSheet"]]$Cells(1, 1), row.names = FALSE)
 }
 
+# Extract the data from the file(s)
 tidydataset <- lapply(filessrc, DataExtractAll)
 tidydataset <- mapply(cbind,tidydataset,"Filename"=TableNames,SIMPLIFY = F)
 tidydataset<- tidydataset %>%
@@ -186,7 +190,7 @@ tidydataset <- inner_join(tidydataset, BCatlookup)
 tidydataset$value[is.na(tidydataset$value)] <- 0
 tidydataset$Tests.or.Clients..T.or.C. <- gsub(TRUE, "T", tidydataset$Tests.or.Clients..T.or.C.)
 
-### double up the loop to go through either tests/clients or the different categories.
+# double up the loop to go through either tests/clients or the different categories.
 
 for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
   tidydatasetuse <- tidydataset[tidydataset$Tests.or.Clients..T.or.C. == TCpicker[TC],]
@@ -207,7 +211,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
     BQAtablescombined <- left_join(data.frame("BCatDesc" = BCatOrder), BQAtablescombined)
     BQAtablescombined$BCatDesc <- as.character(BQAtablescombined$BCatDesc)
     
-    ###This chunk produces a list of data frames that contain the values for the BQA box numbers identified by BoxIDVector
+    # This chunk produces a list of data frames that contain the values for the BQA box numbers identified by BoxIDVector
     BoxList <- list()
     for (k in 1:length(BoxIDVector)) {
       if (group[CC] == "Radiological_appearance") {
@@ -235,8 +239,8 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
       tidydenomframe <- bind_rows(tidydenomframe, BQACalcFunSum(calcnames[i], calcDenomSumBoxes[[i]]))
     }
     
-    ### For numerators: PPV (B5) need to subtract "28", for PPV (B4) need to subtract c("32","41"), for Negative Predictive Value need to 
-    ### subtract "7" from relevant sum boxes.
+    # For numerators: PPV (B5) need to subtract "28", for PPV (B4) need to subtract c("32","41"), for Negative Predictive Value need to 
+    # subtract "7" from relevant sum boxes.
     for (i in seq_along(subtractNumNames)) {
       subframe <- BQACalcFunSum(subtractNumNames[i], subtractNum[[i]])
       common <- intersect(names(tidynumframe), names(subframe)[-c(1:2)])
@@ -245,7 +249,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
                      names(tidynumframe) %in% common] - replace(subframe[common], is.na(subframe[common]), 0)
     }
     
-    ### For denominators: PPV (B4) need to subtract 41 from relevant sumbox
+    # For denominators: PPV (B4) need to subtract 41 from relevant sumbox
     subframe <- BQACalcFunSum("PPV (B4)", "41")
     common <- intersect(names(tidydenomframe), names(subframe)[-c(1:2)])
     tidydenomframe[tidydenomframe$Measure == "PPV (B4)", names(tidydenomframe) %in% common] <-
@@ -255,7 +259,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
     names(tidynumframe)[names(tidynumframe) == "Measure"] <- "BCatDesc"
     names(tidydenomframe)[names(tidydenomframe) == "Measure"] <- "BCatDesc"
     
-    ### creates lists of the numerator and denominator values separated by filename
+    # creates lists of the numerator and denominator values separated by filename
     NumList <- list()
     for (k in TableNames) {
       NumList[[k]] <- as_tibble(tidynumframe[tidynumframe$Filename == k, c(1, 3:ncol(tidynumframe))])
@@ -265,10 +269,10 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
       DenomList[[k]] <- as_tibble(tidydenomframe[tidydenomframe$Filename == k, c(1, 3:ncol(tidydenomframe))])
     }
     
-    ### clears NA values coerced by bind_rows by replacing with 0
+    # clears NA values coerced by bind_rows by replacing with 0
     tidynumframe[is.na(tidynumframe)] <- 0
     tidydenomframe[is.na(tidydenomframe)] <- 0
-    ### calculates the proportions for the calculated statistics and removes NaN values created by 0/0
+    # calculates the proportions for the calculated statistics and removes NaN values created by 0/0
     tidycalcframe <- cbind(tidynumframe[,1:2], tidynumframe[, 3:ncol(tidynumframe)] / tidydenomframe[, 3:ncol(tidydenomframe)])
     tidycalcframe[is.na(tidycalcframe)] <- 0
     names(tidycalcframe)[names(tidycalcframe) == "Measure"] <- "BCatDesc"
@@ -286,15 +290,15 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
       CalcList[[k]] <- as_tibble(tidycalcframeperc[tidycalcframeperc$Filename == k, c(2:ncol(tidycalcframeperc))])
     }
     
-    #creates a list of dataframes based on the filename of the data source
+    # creates a list of dataframes based on the filename of the data source
     TablesList <- list()
     for (k in TableNames) {
       TablesList[[k]] <- as_tibble(BQAtablescombined[BQAtablescombined$Filename==k, c(1, 3:ncol(BQAtablescombined))])
     }
     
-    ### Moves the BCatDesc column to the start of the dataframes
-    TablesList <- lapply(TablesList, function(df){select(df, BCatDesc, everything())})
-    ### sets up list containing the ordered data IN PROGRESS
+    # Moves the BCatDesc column to the start of the dataframes
+    TablesList <- lapply(TablesList, function(df) {select(df, BCatDesc, everything())})
+    # sets up list containing the ordered data
     for (i in seq_along(TablesList)) {
       TablesList[[i]] <- TablesList[[i]][, c(1, 1 + order(-as.data.frame(TablesList[[i]][1, 2:ncol(TablesList[[i]])])))]
     }
@@ -311,7 +315,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
     
     chartframeplot <- BQABarPlot(TotalList[[1]], 2:6, "BCatDesc", "B category", group)
     
-    ### creates a dataframe containing the proportion of the different B5 categories in place of thenumbers of cases
+    # creates a dataframe containing the proportion of the different B5 categories in place of thenumbers of cases
     chartframe <- TotalList[[1]]
     for (i in c("Number of B5a", "Number of B5b", "Number of B5c")){
       chartframe[chartframe$BCatDesc == i, 2:ncol(chartframe)] <-
@@ -328,26 +332,39 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
         as.numeric(chartframe[chartframe$BCatDesc == i,2:ncol(chartframe)]) / as.numeric(chartframe[chartframe$BCatDesc == "Total Number of tests",
                                                                                                     2:ncol(chartframe)])
     }
+
+# ==========================================================================================================================================    
     
-    #creates the list to put the plots
+    # creates the list to put the plots
     PlotList <- list()
     
-    #for each of the plots as identified by chartnames
+    # for each of the plots as identified by chartnames
     for (i in TableNames) {
       tempPlotList <- list()
       for (j in seq_along(chartnames)) {
-        chart_data <- chartframe[chartframe$BCatDesc %in% chartrows[[j]], ] #filter chartframe to only include the rows required
-        chart_data[is.na(chart_data)] <- 0 #change any remaining NA values to 0
-        chart_data[2:ncol(chart_data)] <- as.numeric(unlist(chart_data[2:ncol(chart_data)])) #change the values from char to numeric
-        ###at this point there should be a datafrime in wide format ready to plug into the chart generation formula
+        chart_data <- chartframe[chartframe$BCatDesc %in% chartrows[[j]], ] # filter chartframe to only include the rows required
+        chart_data[is.na(chart_data)] <- 0 # change any remaining NA values to 0
+        chart_data[2:ncol(chart_data)] <- as.numeric(unlist(chart_data[2:ncol(chart_data)])) # change the values from char to numeric
+        # at this point there should be a datafrime in wide format ready to plug into the chart generation formula
         tempPlotList[[chartnames[j]]] <- BQABarPlot(chart_data, chartrownums[[j]], 'BCatDesc', chartdatastring[j], "pathologist")
       }
       PlotList[[i]] <- tempPlotList
     } 
-    
-    #pastes the data in the different lists and the charts into a worksheet in the opened workbook for each filename in TableNames
+
+# =========================================================================================================================================
+
+    # pastes the data in the different lists and the charts into a worksheet in the opened workbook for each filename in TableNames
     for (k in seq_along(TableNames)) {
-      xl.sheet.add(paste(TableNames[k], oldfilters[TC], substr(group[CC], 1, 3)))
+      
+      # Because the sheet name can only be 31 characters max, the filename is truncated to use the last 20 characters in the TableName entry
+      # this may be an issue if the filename is not informative enough.
+      
+      if (nchar(TableNames[k]) > 20) {
+        sheetName <- trimws(substr(TableNames[k], nchar(TableNames[k]) - 19, nchar(TableNames[k])), which = "left")
+      } else {
+        sheetName <- TableNames[k]
+      }
+      xl.sheet.add(paste(sheetName, oldfilters[TC], substr(group[CC], 1, 3)))
       xl.write(TotalList[[k]], xl.get.excel()[["ActiveSheet"]]$Cells(1, 1), row.names = FALSE)
       print(PlotList[[k]]$BcatPlot)
       xl[a26] = current.graphics(width=1000)
@@ -369,8 +386,11 @@ xl.workbook.save(paste("SQAS BQA report generated", Sys.Date()))
 ### removes unneeded temporary information from enviroment
 rm(subframe, common, subtractNumNames, subtractNum, calcDenomSumBoxes, calcNumSumBoxes, BCatDesc, BCategory, BoxCatIDFilters,
    BoxIDVector, chartframe, chartrownums, chartrows, chart_data, chartframeplot, oldfilters, newfilters, checker, allinfo, pathlook,
-   pathtable, PCodesUnused, Pathologists)
+   pathtable, PCodesUnused, Pathologists, sheetName, TableNames, group, PrimarySortIDHeadings, filessrc, BCatlookup, BoxList, 
+   BQAtablescombined, CalcList, DenomList, NumList, PlotList, TablesList, tempPlotList, tidycalcframe, tidycalcframemelted,
+   tidycalcframeperc, tidydataset, tidydatasetuse, tidydenomframe, tidydenomframemelted, tidynumframe, TotalList,
+   i, j, k, TC, TCpicker, chartdatastring, chartnames, CC, calcnames, BoxRowIDFilters, BCatOrder, xl)
 
 options(warn = oldw)
 
-rm(i, j, k, TC, TCpicker, chartdatastring, chartnames, CC, calcnames, BoxRowIDFilters, BCatOrder, xl, oldw)
+rm(oldw)
