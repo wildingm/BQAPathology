@@ -111,7 +111,7 @@ filessrc <- choose.files()
 
 ### Variable vectors and lists
 BCatDesc <- c("Total Number of tests", "Number of B1", "Number of B2", "Number of B3 with atypia not specified",
-  "Number of B3 without atypia", "Number of B3 with atypia", "Number of B3", "Number of B4", "Number of B5c", "Number of B5b",
+  "Number of B3 with atypia", "Number of B3 without atypia", "Number of B3", "Number of B4", "Number of B5c", "Number of B5b",
   "Number of B5a", "Number of B5")
 BCategory <- c("Total", "WBN.B1", "WBN.B2", "WBN.B3.ns", "WBN.B3.wa", "WBN.B3.na", "WBN.B3", "WBN.B4", "WBN.B5c",
                "WBN.B5b", "WBN.B5a", "WBN.B5")
