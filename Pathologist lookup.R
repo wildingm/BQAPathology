@@ -76,7 +76,7 @@ CheckFile<-winDialog(type = "yesno", "Do you want to check a BQA csv file for ne
 
 while(CheckFile=="YES") {
   filessrc<-choose.files() 
-  checksource<-read.csv(filessrc, skip = 2)
+  checksource<-read.csv(filessrc, skip = 3)
   checksource<-checksource[-nrow(checksource),1:23] #remove last row (states end of data), and extra columns with calculated fields
   checksource<-separate(checksource,col = Primary.Sort.Value,into = PrimarySortIDHeadings, sep = "\\*") #expands the Primary.Sort.Value field 
   checksourceselected<-checksource[,c(1,match("Path_national_code",names(checksource)),15:35)]
@@ -97,4 +97,5 @@ while(CheckFile=="YES") {
 }
 
 rm(checksource,checksourceselected,checkcode,CheckFile,codeslist,PCodes)
+
 
