@@ -6,3 +6,4 @@ V1.01.01 Updated package installation code to force installation of required pac
 V1.02 Updated code to allow for use of files not generated from the new BSIS report. Allows selection of Tests or Clients as part of the process
 V1.03 Changes to many items of code to ensure that sourcing the script correctly runs to produce the output for the user
 V1.04 Additions to output to include numerators anddenominators for calculated stats - this allows users to aggregate across multiple sheets if necessary
+V2.00 Major change to codebase to use tidier data source and reduce time/user input to process
