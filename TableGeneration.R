@@ -174,7 +174,8 @@ TableNames <- file_path_sans_ext(basename(filessrc))
 
 #xl.workbook.add() excel.link function that no longer works :(
 
-
+wb <- createWorkbook()
+modifyBaseFont(wb, fontSize = 12, fontName = "Arial")
 
     ### Review all code to remove reference to compile for BSIS options ###
 
@@ -236,18 +237,18 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
   tidydatasetuse <- tidydataset[tidydataset$Tests.or.Clients..T.or.C. == TCpicker[TC],]
   
   for (CC in 1:length(group)) { ### MUCH OF THIS UNNECESSARY NOW
-    if (group[CC] == "Radiological_appearance") {
-      BQAtablescombined <- TableGenerator(tidydatasetuse, Row.Identifier==9999, Radiological_appearance,
-                                          Filename, Radiological_appearance, BCatDesc)
-    } else if (group[CC] == "Path_pseudo_code") {
-      BQAtablescombined <- TableGenerator(tidydatasetuse, Row.Identifier==9999, Path_pseudo_code, Filename, Path_pseudo_code, BCatDesc)
-    } else if (group[CC] == "Laboratory_name") {
-      BQAtablescombined <- TableGenerator(tidydatasetuse, Row.Identifier==9999, Laboratory_name, Filename, Laboratory_name, BCatDesc)
-    } else if (group[CC] == "Loc_method") {
-      BQAtablescombined <- TableGenerator(tidydatasetuse, Row.Identifier==9999, Loc_method, Filename, Loc_method, BCatDesc)
-    } else {
+    # if (group[CC] == "Radiological_appearance") {
+    #   BQAtablescombined <- TableGenerator(tidydatasetuse, Row.Identifier==9999, Radiological_appearance,
+    #                                       Filename, Radiological_appearance, BCatDesc)
+    # } else if (group[CC] == "Path_pseudo_code") {
+    #   BQAtablescombined <- TableGenerator(tidydatasetuse, Row.Identifier==9999, Path_pseudo_code, Filename, Path_pseudo_code, BCatDesc)
+    # } else if (group[CC] == "Laboratory_name") {
+    #   BQAtablescombined <- TableGenerator(tidydatasetuse, Row.Identifier==9999, Laboratory_name, Filename, Laboratory_name, BCatDesc)
+    # } else if (group[CC] == "Loc_method") {
+    #   BQAtablescombined <- TableGenerator(tidydatasetuse, Row.Identifier==9999, Loc_method, Filename, Loc_method, BCatDesc)
+    # } else {
       BQAtablescombined <- TableGenerator(tidydatasetuse, Row.Identifier==9999, Primary_Sort_Value, Filename, Primary_Sort_Value,BCatDesc)
-    }
+    #}
     BQAtablescombined <- left_join(data.frame("BCatDesc" = BCatOrder), BQAtablescombined)
     BQAtablescombined$BCatDesc <- as.character(BQAtablescombined$BCatDesc)
     
@@ -385,15 +386,15 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
         chart_data <- chartframe[chartframe$BCatDesc %in% chartrows[[j]], ] # filter chartframe to only include the rows required
         chart_data[is.na(chart_data)] <- 0 # change any remaining NA values to 0
         chart_data <- chart_data %>%
-          mutate_at(c(2:ncol(chart_data)), funs(as.numeric(as.character(.))))
-        
-        [2:ncol(chart_data)] <- as.numeric(unlist(chart_data[2:ncol(chart_data)])) # change the values from char to numeric
+          mutate_at(vars(2:ncol(chart_data)), ~as.numeric(as.character(.)))
         # at this point there should be a dataframe in wide format ready to plug into the chart generation formula
         tempPlotList[[chartnames[j]]] <- BQABarPlot(chart_data, chartrownums[[j]], 'BCatDesc', chartdatastring[j], "pathologist")
       }
       PlotList[[i]] <- tempPlotList
     } 
 
+    #REPLACE WITH 3 LOTS OF CHART DATA FOR T AND C
+    
 # =========================================================================================================================================
 
     # pastes the data in the different lists and the charts into a worksheet in the opened workbook for each filename in TableNames
@@ -403,14 +404,37 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
       # this may be an issue if the filename is not informative enough.
       
       if (nchar(TableNames[k]) > 20) {
-        sheetName <- trimws(substr(TableNames[k], nchar(TableNames[k]) - 19, nchar(TableNames[k])), which = "left")
+        sheetName <- trimws(substr(TableNames[k], 1, 19))
       } else {
         sheetName <- TableNames[k]
       }
-      xl.sheet.add(paste(sheetName, oldfilters[TC], substr(group[CC], 1, 3)))
-      xl.write(TotalList[[k]], xl.get.excel()[["ActiveSheet"]]$Cells(1, 1), row.names = FALSE)
-      print(PlotList[[k]]$BcatPlot)
-      xl[a26] = current.graphics(width=1000)
+      addWorksheet(wb, paste(sheetName, oldfilters[TC]))
+      writeDataTable(wb,
+                     sheet = paste(sheetName, oldfilters[TC]),
+                     x = TotalList[[k]],
+                     rowNames = FALSE)
+      # chart_data <- melt(chart_data[chartrownums[[j]], ], id.var='BCatDesc')
+      # chart_data$BCatDesc <- gsub("Number of ", "", chart_data$BCatDesc)
+      ggplot(chart_data, aes(y=value, x = variable, fill = BCatDesc)) +
+        geom_bar(stat="identity", position = "stack") +
+        theme_minimal() +
+        theme(axis.text.x = element_text(angle = 45, hjust = 0.95, size = 12),
+              axis.text.y = element_text(size = 12),
+              panel.grid.major.x = element_blank(),
+              panel.grid.major.y = element_line(size=.1, color="dark grey"),
+              plot.title = element_text(face = "bold", colour = "black", size = 16,hjust = 0.5),
+              axis.title.x = element_text(face = "bold", colour = "black", size = 14),
+              axis.title.y = element_text(face = "bold", colour = "black", size = 14),
+              legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.5, "cm"), 
+              legend.text = element_text(size = 12)) + scale_fill_brewer(palette="Set1") +
+        labs(title = paste("Proportion of", tolower(oldfilters[TC]), "broken down by", chartdatastring[j], "\n data displayed by", "pathologist"), x = "pathologist") +
+        scale_y_continuous(name = "Percentage of total", breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
+                           labels = c("100%", "80%", "60%", "40%", "20%", "0%"))
+      #BQABarPlot(chart_data, chartrownums[[j]], 'BCatDesc', chartdatastring[j], "pathologist")
+      insertPlot(wb,
+                 sheet = paste(sheetName, oldfilters[TC]),
+                 startCol = "A",
+                 startRow = 26)
       print(PlotList[[k]]$B5Plot)
       xl[a51] = current.graphics(width=1000)
       print(PlotList[[k]]$B3Plot)
@@ -423,8 +447,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) {
   }
 }
 
-xl.sheet.delete("Sheet1")
-xl.workbook.save(paste("SQAS BQA report generated", Sys.Date()))
+saveWorkbook(wb, paste("SQAS BQA report generated", Sys.Date(), ".xlsx"), overwrite = T)
 
 ### removes unneeded temporary information from enviroment
 # rm(subframe, common, subtractNumNames, subtractNum, calcDenomSumBoxes, calcNumSumBoxes, BCatDesc, BCategory, BoxCatIDFilters,
