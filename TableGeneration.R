@@ -325,7 +325,8 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     
     chart_data <- chart_data %>%
       filter(name %in% chartdatatotals$name) %>% # filters chart data to exclude pathologists without at least 5 outcomes
-      mutate(BCatDesc = gsub("Number of ", "", .$BCatDesc)) # removes 'Number of ' tag on description column 
+      mutate(BCatDesc = gsub("Number of ", "", .$BCatDesc),
+             name = gsub("V1", "Total", .$name)) # removes 'Number of ' tag on description column 
     
     chart_1_data <- chart_data %>%
       filter(BCatDesc %in% c("B1","B2","B3","B4","B5")) %>%
@@ -334,7 +335,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     
     ggplot(chart_1_data, aes(y=value, x = name, fill = BCatDesc)) +
       geom_bar(stat="identity", position = "stack") +
-      geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
+      #geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
       theme_phe("phe") +
       #scale_fill_phe(theme = "phenavys") +
       scale_fill_manual(name = "Category",
@@ -371,7 +372,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     
     ggplot(chart_2_data, aes(y=value, x = name, fill = BCatDesc)) +
       geom_bar(stat="identity", position = "stack") +
-      geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
+      #geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
       theme_phe("phe") +
       #scale_fill_phe(theme = "phenavys") +
       scale_fill_manual(name = "Category",
@@ -407,7 +408,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     
     ggplot(chart_3_data, aes(y=value, x = name, fill = BCatDesc)) +
       geom_bar(stat="identity", position = "stack") +
-      geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
+      #geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
       theme_phe("phe") +
       #scale_fill_phe(theme = "phenavys") +
       scale_fill_manual(name = "Category",
@@ -434,7 +435,6 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
                 height = 5,
                 startCol = "A",
                 startRow = 76)
-    
     writeData(wb, 
               sheet = paste(sheetName, oldfilters[TC]), 
               "Numerators", 
@@ -450,7 +450,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
               rowNames = FALSE)
     writeData(wb, 
               sheet = paste(sheetName, oldfilters[TC]), 
-              "Denominatorss", 
+              "Denominators", 
               startCol = 1, 
               startRow = 115, 
               rowNames = FALSE, 
