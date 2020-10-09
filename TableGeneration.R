@@ -99,6 +99,7 @@ TableGenerator <- function (dataset, filters, colID, ...) {
 
 winDialog(type = "ok", "Please choose the BQA files for analysis")
 filessrc <- choose.files() 
+filesdir <- dirname(filessrc[1])
 
 ### Variable vectors and lists
 BCategory <- c("Total", "WBN.B1", "WBN.B2", "WBN.B3.ns", "WBN.B3.wa", "WBN.B3.na", "WBN.B3", "WBN.B4", "WBN.B5c", "WBN.B5b", "WBN.B5a", "WBN.B5")
@@ -119,7 +120,7 @@ chartrows <- list(c("Number of B5", "Number of B4", "Number of B3", "Number of B
                   c("Number of B5a", "Number of B5b", "Number of B5c"), 
                   c("Number of B3 with atypia", "Number of B3 without atypia", "Number of B3 with atypia not specified"))
 chartdatastring <- c("B Category", "B5 sub-category", "B3 sub-category")
-oldfilters <- c("Tests", "Clients")
+oldfilters <- c("Clients", "Tests")
 #newfilters <- c("Path_pseudo_code", "Laboratory_name", "Loc_method", "Radiological_appearance")
 TCpicker <- c("C", "T")
 imgNum <- 1
@@ -177,14 +178,16 @@ pathList <- tidydataset %>%
          )) %>%
   select(-value, -rank)
 
+
+### Would really like to make this a user interface option to enter user defined pseudonyms - this should allow grouping of data where pathologists
+### have more than one code in the NBSS system - and allow consensus/arbitration/unknown pathologists to be grouped too
+
 addWorksheet(wb, "Pathologist Codes")
 writeData(wb, 
           sheet = "Pathologist Codes", 
           pathList, 
           rowNames = FALSE)
 
-### Would really like to make this a user interface option to enter user defined pseudonyms - this should allow grouping of data where pathologists
-### have more than one code in the NBSS system - and allow consensus/arbitration/unknown pathologists to be grouped too
 
 # double up the loop to go through either tests/clients or the different categories.
 
@@ -499,7 +502,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     }
 }
 
-saveWorkbook(wb, paste("SQAS BQA report generated", Sys.Date(), ".xlsx"), overwrite = T)
+saveWorkbook(wb, paste0(filesdir,"/SQAS BQA report generated_", Sys.Date(), ".xlsx"), overwrite = T)
 
 ### removes unneeded temporary information from environment
 unlink(imgList)
@@ -508,7 +511,7 @@ rm(subframe, common, subtractNumNames, subtractNum, calcDenomSumBoxes, calcNumSu
    group, PrimarySortIDHeadings, filessrc, BCatlookup, BoxList, BQAtablescombined, CalcList, DenomList, NumList, PlotList, 
    TablesList, tempPlotList, tidycalcframe, tidycalcframemelted, tidycalcframeperc, tidydataset, tidydatasetuse, tidydenomframe, 
    tidydenomframemelted, tidynumframe, TotalList, i, j, k, TC, TCpicker, chartdatastring, chartnames, calcnames, BoxRowIDFilters, 
-   BCatOrder, chart_1_data, chart_2_data, chart_3_data, chartdatatotals, imgNum, wb, imgList, pathList, pathListMaxFilename)
+   BCatOrder, chart_1_data, chart_2_data, chart_3_data, chartdatatotals, imgNum, wb, imgList, pathList, pathListMaxFilename, filesdir)
 
 options(warn = oldw)
 
