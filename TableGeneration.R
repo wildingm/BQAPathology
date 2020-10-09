@@ -3,12 +3,6 @@
 oldw <- getOption("warn")
 options(warn = -1)
 
-if (exists("selector")) {
-  rm(selector)
-}
-
-#source("Pathologist lookup.R")
-
 if (!require('tools')) {
   install.packages('tools')
   library('tools')
@@ -156,6 +150,32 @@ tidydataset <- tidydataset %>%
 tidydataset$value[is.na(tidydataset$value)] <- 0
 tidydataset$Tests.or.Clients..T.or.C. <- gsub(TRUE, "T", tidydataset$Tests.or.Clients..T.or.C.) # convert TRUE values into T string
 
+# ================================================================================================================
+# Pathologist pseudonymisation code
+
+pathListMaxFilename <- tidydataset %>%
+  filter(value == max(value))
+
+pathList <- tidydataset %>%
+  filter(Row.Identifier == 9999,
+         Tests.or.Clients..T.or.C. == "C",
+         BCategory == "Total",
+         Filename %in% pathListMaxFilename$Filename) %>%
+  group_by(Primary_Sort_Value) %>%
+  summarise(value = max(value)) %>%
+  filter(Primary_Sort_Value != "") %>%
+  arrange(desc(value), Primary_Sort_Value) %>%
+  mutate(rank = 1:nrow(.),
+         pathCode = case_when(
+           Primary_Sort_Value == "zzzz" ~ "Unknown Pathologist",
+           rank < 10 ~ paste0("PATH0", rank),
+           rank >= 10 ~ paste0("PATH", rank)
+         )) %>%
+  select(-value, -rank)
+
+### Would really like to make this a user interface option to enter user defined pseudonyms - this should allow grouping of data where pathologists
+### have more than one code in the NBSS system - and allow consensus/arb/unknown pathologists to be grouped too
+
 # double up the loop to go through either tests/clients or the different categories.
 
 for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should handle cases where only C has been run
@@ -179,8 +199,10 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
   BCatlookup <- data.frame(BCategory, BCatDesc)
   
   tidydatasetuse <- tidydataset[tidydataset$Tests.or.Clients..T.or.C. == TCpicker[TC],] %>% 
-    inner_join(BCatlookup)
-  
+    inner_join(BCatlookup) %>%
+    left_join(pathList) %>%
+    select(-Primary_Sort_Value) %>%
+    rename(Primary_Sort_Value = pathCode)
   
   BQAtablescombined <- TableGenerator(tidydatasetuse, Row.Identifier==9999, Primary_Sort_Value, Filename, Primary_Sort_Value, BCatDesc)
   BQAtablescombined <- left_join(data.frame("BCatDesc" = BCatOrder), BQAtablescombined)
@@ -337,7 +359,6 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
       geom_bar(stat="identity", position = "stack") +
       #geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
       theme_phe("phe") +
-      #scale_fill_phe(theme = "phenavys") +
       scale_fill_manual(name = "Category",
                         values = c("B5" = brewer_phe()[1],
                                    "B4" = brewer_phe()[2],
@@ -377,7 +398,6 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
       geom_bar(stat="identity", position = "stack") +
       #geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
       theme_phe("phe") +
-      #scale_fill_phe(theme = "phenavys") +
       scale_fill_manual(name = "Category",
                         values = c("B5a" = brewer_phe()[1],
                                    "B5b" = brewer_phe()[2],
@@ -406,7 +426,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     imgNum <- imgNum + 1
     
     chart_3_data <- chart_data %>%
-      filter(BCatDesc %in% c(c("B3 with atypia", "B3 without atypia", "B3 with atypia \nnot specified"))) %>%
+      filter(BCatDesc %in% c(c("B3 with atypia", "B3 without atypia", "B3 with atypia not specified"))) %>%
       group_by(name) %>%
       mutate(pos = cumsum(value) - value/2)
     
@@ -414,7 +434,6 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
       geom_bar(stat="identity", position = "stack") +
       #geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
       theme_phe("phe") +
-      #scale_fill_phe(theme = "phenavys") +
       scale_fill_manual(name = "Category",
                         values = c("B3 with atypia" = brewer_phe()[1],
                                    "B3 without atypia" = brewer_phe()[2],
@@ -472,12 +491,13 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
 saveWorkbook(wb, paste("SQAS BQA report generated", Sys.Date(), ".xlsx"), overwrite = T)
 
 ### removes unneeded temporary information from environment
+unlink(imgList)
 rm(subframe, common, subtractNumNames, subtractNum, calcDenomSumBoxes, calcNumSumBoxes, BCatDesc, BCategory, BoxCatIDFilters,
    BoxIDVector, chartframe, chartrownums, chartrows, chart_data, chartframeplot, oldfilters, newfilters, sheetName, TableNames, 
    group, PrimarySortIDHeadings, filessrc, BCatlookup, BoxList, BQAtablescombined, CalcList, DenomList, NumList, PlotList, 
    TablesList, tempPlotList, tidycalcframe, tidycalcframemelted, tidycalcframeperc, tidydataset, tidydatasetuse, tidydenomframe, 
-   tidydenomframemelted, tidynumframe, TotalList, i, j, k, TC, TCpicker, chartdatastring, chartnames, calcnames, BoxRowIDFilters, BCatOrder)
-unlink(imgList)
+   tidydenomframemelted, tidynumframe, TotalList, i, j, k, TC, TCpicker, chartdatastring, chartnames, calcnames, BoxRowIDFilters, 
+   BCatOrder, chart_1_data, chart_2_data, chart_3_data, chartdatatotals, imgNum, wb, imgList, pathList, pathListMaxFilename)
 
 options(warn = oldw)
 
