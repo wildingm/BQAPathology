@@ -107,17 +107,15 @@ winDialog(type = "ok", "Please choose the BQA files for analysis")
 filessrc <- choose.files() 
 
 ### Variable vectors and lists
-BCategory <- c("Total", "WBN.B1", "WBN.B2", "WBN.B3.ns", "WBN.B3.wa", "WBN.B3.na", "WBN.B3", "WBN.B4", "WBN.B5c",
-               "WBN.B5b", "WBN.B5a", "WBN.B5")
+BCategory <- c("Total", "WBN.B1", "WBN.B2", "WBN.B3.ns", "WBN.B3.wa", "WBN.B3.na", "WBN.B3", "WBN.B4", "WBN.B5c", "WBN.B5b", "WBN.B5a", "WBN.B5")
 BoxIDVector <- c("1", "5", "6", "7", "8", "9", "28", "32", "34", "36", "37", "41", "42", "43", "44", "46", "50", "51", "53", "54", "52")
 BoxCatIDFilters <- c('WBN.B5', 'WBN.B4', 'WBN.B3', 'WBN.B2', 'WBN.B1', 'Total', 'WBN.B5', 'WBN.B4', 'WBN.B2', 'Total', 'WBN.B5', 'WBN.B4',
                    'WBN.B3', 'WBN.B2', 'WBN.B1', 'WBN.B5', 'WBN.B4', 'WBN.B3', 'WBN.B1', 'Total', 'WBN.B2')
 BoxRowIDFilters <- c(10, 10, 10, 10, 10, 10, 40, 40, 40, 40, 60, 60, 60, 60, 60, 9999, 9999, 9999, 9999, 9999, 9999)
 subtractNum <- list("28", c("32", "41"), "7")
 subtractNumNames <- c("PPV (B5)", "PPV (B4)", "Negative Predictive Value")
-calcnames <- c("Absolute Sensitivity", "Specificity (biopsy cases only)",
-             "Specificity (Full)", "Complete Sensitivity", "PPV (B5)", "PPV (B4)", "PPV (B3)", "Negative Predictive Value",
-             "False Negative Rate", "True False Positive Rate", "Miss Rate")
+calcnames <- c("Absolute Sensitivity", "Specificity (biopsy cases only)", "Specificity (Full)", "Complete Sensitivity", "PPV (B5)", "PPV (B4)", 
+               "PPV (B3)", "Negative Predictive Value", "False Negative Rate", "True False Positive Rate", "Miss Rate")
 calcNumSumBoxes <- list(c("1", "37"), "34", c("34", "43"), c("1", "5", "6", "37"), "46", "50", "6", "52", "7", "28", c("7", "8"))
 calcDenomSumBoxes <- list(c("9", "37"), "36", c("36", "42", "43", "44"), c("9", "37"), "46", "50", "51", "52", c("9", "37"), c("9", "37"),
                           c("9", "37"))
@@ -130,6 +128,8 @@ chartdatastring <- c("B Category", "B5 sub-category", "B3 sub-category")
 oldfilters <- c("Tests", "Clients")
 #newfilters <- c("Path_pseudo_code", "Laboratory_name", "Loc_method", "Radiological_appearance")
 TCpicker <- c("T", "C")
+imgNum <- 1
+imgList <- NULL
 
 ### extracts the filenames from filessrc
 TableNames <- file_path_sans_ext(basename(filessrc))
@@ -356,14 +356,17 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
       #labs(title = paste("Proportion of", tolower(oldfilters[TC]), "broken down by", chartdatastring[j], "\n data displayed by", "pathologist"), x = "pathologist") +
       scale_y_continuous(name = "Percentage of total", breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
                          labels = c("100%", "80%", "60%", "40%", "20%", "0%"))
-    ggsave(paste0("tmpPlot1",TCpicker[TC],".png"), width = 7, height = 5, units = "in")
+    ggsave(paste0("tmpPlot-",imgNum,".png"), width = 7, height = 5, units = "in")
     insertImage(wb,
                 sheet = paste(sheetName, oldfilters[TC]),
-                paste0("tmpPlot1",TCpicker[TC],".png"),
+                paste0("tmpPlot-",imgNum,".png"),
                 width = 7, 
                 height = 5,
                 startCol = "A",
                 startRow = 26)
+    imgList <- c(paste0("tmpPlot-",imgNum,".png"), imgList)
+    imgNum <- imgNum + 1
+
     
     chart_2_data <- chart_data %>%
       filter(BCatDesc %in% c("B5a","B5b","B5c")) %>%
@@ -391,15 +394,16 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
       #labs(title = paste("Proportion of", tolower(oldfilters[TC]), "broken down by", chartdatastring[j], "\n data displayed by", "pathologist"), x = "pathologist") +
       scale_y_continuous(name = "Percentage of total", breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
                          labels = c("100%", "80%", "60%", "40%", "20%", "0%"))
-    ggsave(paste0("tmpPlot2",TCpicker[TC],".png"), width = 7, height = 5, units = "in")
+    ggsave(paste0("tmpPlot-",imgNum,".png"), width = 7, height = 5, units = "in")
     insertImage(wb,
                 sheet = paste(sheetName, oldfilters[TC]),
-                paste0("tmpPlot2",TCpicker[TC],".png"),
+                paste0("tmpPlot-",imgNum,".png"),
                 width = 7, 
                 height = 5,
                 startCol = "A",
                 startRow = 51)
-    
+    imgList <- c(paste0("tmpPlot-",imgNum,".png"), imgList)
+    imgNum <- imgNum + 1
     
     chart_3_data <- chart_data %>%
       filter(BCatDesc %in% c(c("B3 with atypia", "B3 without atypia", "B3 with atypia \nnot specified"))) %>%
@@ -427,21 +431,23 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
       #labs(title = paste("Proportion of", tolower(oldfilters[TC]), "broken down by", chartdatastring[j], "\n data displayed by", "pathologist"), x = "pathologist") +
       scale_y_continuous(name = "Percentage of total", breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
                          labels = c("100%", "80%", "60%", "40%", "20%", "0%"))
-    ggsave(paste0("tmpPlot3",TCpicker[TC],".png"), width = 7, height = 5, units = "in")
+    ggsave(paste0("tmpPlot-",imgNum,".png"), width = 7, height = 5, units = "in")
     insertImage(wb,
                 sheet = paste(sheetName, oldfilters[TC]),
-                paste0("tmpPlot3",TCpicker[TC],".png"),
+                paste0("tmpPlot-",imgNum,".png"),
                 width = 7, 
                 height = 5,
                 startCol = "A",
                 startRow = 76)
+    imgList <- c(paste0("tmpPlot-",imgNum,".png"), imgList)
+    imgNum <- imgNum + 1
+    
     writeData(wb, 
               sheet = paste(sheetName, oldfilters[TC]), 
               "Numerators", 
               startCol = 1, 
               startRow = 101, 
-              rowNames = FALSE, 
-              headerStyle = header_st_bold)
+              rowNames = FALSE)
     writeData(wb, 
               sheet = paste(sheetName, oldfilters[TC]), 
               NumList[[k]], 
@@ -453,26 +459,25 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
               "Denominators", 
               startCol = 1, 
               startRow = 115, 
-              rowNames = FALSE, 
-              headerStyle = header_st_bold)
+              rowNames = FALSE)
     writeData(wb, 
               sheet = paste(sheetName, oldfilters[TC]), 
               DenomList[[k]], 
               startCol = 1, 
               startRow = 116, 
-              rowNames = FALSE)    }
+              rowNames = FALSE)    
+    }
 }
-
 
 saveWorkbook(wb, paste("SQAS BQA report generated", Sys.Date(), ".xlsx"), overwrite = T)
 
-### removes unneeded temporary information from enviroment
-# rm(subframe, common, subtractNumNames, subtractNum, calcDenomSumBoxes, calcNumSumBoxes, BCatDesc, BCategory, BoxCatIDFilters,
-#    BoxIDVector, chartframe, chartrownums, chartrows, chart_data, chartframeplot, oldfilters, newfilters, checker, allinfo, pathlook,
-#    pathtable, PCodesUnused, Pathologists, sheetName, TableNames, group, PrimarySortIDHeadings, filessrc, BCatlookup, BoxList, 
-#    BQAtablescombined, CalcList, DenomList, NumList, PlotList, TablesList, tempPlotList, tidycalcframe, tidycalcframemelted,
-#    tidycalcframeperc, tidydataset, tidydatasetuse, tidydenomframe, tidydenomframemelted, tidynumframe, TotalList,
-#    i, j, k, TC, TCpicker, chartdatastring, chartnames, calcnames, BoxRowIDFilters, BCatOrder, xl)
+### removes unneeded temporary information from environment
+rm(subframe, common, subtractNumNames, subtractNum, calcDenomSumBoxes, calcNumSumBoxes, BCatDesc, BCategory, BoxCatIDFilters,
+   BoxIDVector, chartframe, chartrownums, chartrows, chart_data, chartframeplot, oldfilters, newfilters, sheetName, TableNames, 
+   group, PrimarySortIDHeadings, filessrc, BCatlookup, BoxList, BQAtablescombined, CalcList, DenomList, NumList, PlotList, 
+   TablesList, tempPlotList, tidycalcframe, tidycalcframemelted, tidycalcframeperc, tidydataset, tidydatasetuse, tidydenomframe, 
+   tidydenomframemelted, tidynumframe, TotalList, i, j, k, TC, TCpicker, chartdatastring, chartnames, calcnames, BoxRowIDFilters, BCatOrder)
+unlink(imgList)
 
 options(warn = oldw)
 
