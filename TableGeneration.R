@@ -121,7 +121,7 @@ chartrows <- list(c("Number of B5", "Number of B4", "Number of B3", "Number of B
 chartdatastring <- c("B Category", "B5 sub-category", "B3 sub-category")
 oldfilters <- c("Tests", "Clients")
 #newfilters <- c("Path_pseudo_code", "Laboratory_name", "Loc_method", "Radiological_appearance")
-TCpicker <- c("T", "C")
+TCpicker <- c("C", "T")
 imgNum <- 1
 imgList <- NULL
 
