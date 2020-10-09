@@ -161,12 +161,16 @@ pathList <- tidydataset %>%
          Tests.or.Clients..T.or.C. == "C",
          BCategory == "Total",
          Filename %in% pathListMaxFilename$Filename) %>%
+  mutate(Primary_Sort_Value = case_when(
+    Primary.Sort.ID == "P" ~ Primary_Sort_Value,
+    Primary.Sort.ID == "TOT" ~ "TOT"
+  )) %>%
   group_by(Primary_Sort_Value) %>%
   summarise(value = max(value)) %>%
-  filter(Primary_Sort_Value != "") %>%
   arrange(desc(value), Primary_Sort_Value) %>%
-  mutate(rank = 1:nrow(.),
+  mutate(rank = 1:nrow(.)-1,
          pathCode = case_when(
+           Primary_Sort_Value == "TOT" ~ "Total",
            Primary_Sort_Value == "zzzz" ~ "Unknown Pathologist",
            rank < 10 ~ paste0("PATH0", rank),
            rank >= 10 ~ paste0("PATH", rank)
@@ -174,7 +178,7 @@ pathList <- tidydataset %>%
   select(-value, -rank)
 
 ### Would really like to make this a user interface option to enter user defined pseudonyms - this should allow grouping of data where pathologists
-### have more than one code in the NBSS system - and allow consensus/arb/unknown pathologists to be grouped too
+### have more than one code in the NBSS system - and allow consensus/arbitration/unknown pathologists to be grouped too
 
 # double up the loop to go through either tests/clients or the different categories.
 
@@ -202,7 +206,8 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     inner_join(BCatlookup) %>%
     left_join(pathList) %>%
     select(-Primary_Sort_Value) %>%
-    rename(Primary_Sort_Value = pathCode)
+    rename(Primary_Sort_Value = pathCode) %>%
+    mutate(Primary_Sort_Value = replace_na(.$Primary_Sort_Value, "Total"))
   
   BQAtablescombined <- TableGenerator(tidydatasetuse, Row.Identifier==9999, Primary_Sort_Value, Filename, Primary_Sort_Value, BCatDesc)
   BQAtablescombined <- left_join(data.frame("BCatDesc" = BCatOrder), BQAtablescombined)
