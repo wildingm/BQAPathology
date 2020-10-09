@@ -177,6 +177,12 @@ pathList <- tidydataset %>%
          )) %>%
   select(-value, -rank)
 
+addWorksheet(wb, "Pathologist Codes")
+writeData(wb, 
+          sheet = "Pathologist Codes", 
+          pathList, 
+          rowNames = FALSE)
+
 ### Would really like to make this a user interface option to enter user defined pseudonyms - this should allow grouping of data where pathologists
 ### have more than one code in the NBSS system - and allow consensus/arbitration/unknown pathologists to be grouped too
 
