@@ -11,10 +11,10 @@ if (!require('ggplot2')) {
   install.packages('ggplot2')
   library('ggplot2')
 }
-if (!require('scales')) {
-  install.packages('scales')
-  library('scales')
-}
+# if (!require('scales')) {
+#   install.packages('scales')
+#   library('scales')
+# }
 if (!require('purrr')) {
   install.packages('purrr')
   library('purrr')
@@ -27,14 +27,14 @@ if (!require('tidyr')) {
   install.packages('tidyr')
   library('tidyr')
 }
-if (!require('reshape2')) {
-  install.packages('reshape2')
-  library('reshape2')
-}
-if (!require('rlang')) {
-  install.packages('rlang')
-  library('rlang')
-}
+# if (!require('reshape2')) {
+#   install.packages('reshape2')
+#   library('reshape2')
+# }
+# if (!require('rlang')) {
+#   install.packages('rlang')
+#   library('rlang')
+# }
 if (!require('openxlsx')) {
   install.packages('openxlsx')
   library('openxlsx')
@@ -171,9 +171,7 @@ pathList <- tidydataset %>%
          )) %>%
   select(-value, -rank)
 
-
-### Would really like to make this a user interface option to enter user defined pseudonyms - this should allow grouping of data where pathologists
-### have more than one code in the NBSS system - and allow consensus/arbitration/unknown pathologists to be grouped too
+pathList <- edit(pathList)
 
 # adds a sheet to the workbook with the pathologist NBSS codes linked to the assigned pseudonyms
 addWorksheet(wb, "Pathologist Codes")
@@ -374,11 +372,11 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
       #geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
       theme_phe("phe") +
       scale_fill_manual(name = "Category",
-                        values = c("B5" = brewer_phe()[1],
-                                   "B4" = brewer_phe()[2],
-                                   "B3" = brewer_phe()[3],
-                                   "B2" = brewer_phe()[5],
-                                   "B1" = brewer_phe()[6]))+
+                        values = c("B5" = "#822433",
+                                   "B4" = "#00B092",
+                                   "B3" = "#002776",
+                                   "B2" = "#A4AEB5",
+                                   "B1" = "#E9994A"))+
       theme(axis.text.x = element_text(angle = 45, hjust = 0.95, size = 12),
             axis.text.y = element_text(size = 12),
             panel.grid.major.x = element_blank(),
@@ -413,9 +411,9 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
       #geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
       theme_phe("phe") +
       scale_fill_manual(name = "Category",
-                        values = c("B5a" = brewer_phe()[1],
-                                   "B5b" = brewer_phe()[2],
-                                   "B5c" = brewer_phe()[3])) +
+                        values = c("B5a" = #822433,
+                                   "B5b" = "#00B092",
+                                   "B5c" = "#002776")) +
       theme(axis.text.x = element_text(angle = 45, hjust = 0.95, size = 12),
             axis.text.y = element_text(size = 12),
             panel.grid.major.x = element_blank(),
@@ -449,9 +447,9 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
       #geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
       theme_phe("phe") +
       scale_fill_manual(name = "Category",
-                        values = c("B3 with atypia" = brewer_phe()[1],
-                                   "B3 without atypia" = brewer_phe()[2],
-                                   "B3 with atypia not specified" = brewer_phe()[3])) +
+                        values = c("B3 with atypia" = #822433,
+                                   "B3 without atypia" = "#00B092",
+                                   "B3 with atypia not specified" = "#002776")) +
       theme(axis.text.x = element_text(angle = 45, hjust = 0.95, size = 12),
             axis.text.y = element_text(size = 12),
             panel.grid.major.x = element_blank(),
@@ -510,8 +508,8 @@ rm(subframe, common, subtractNumNames, subtractNum, calcDenomSumBoxes, calcNumSu
    BoxIDVector, chartframe, chartrownums, chartrows, chart_data, chartframeplot, oldfilters, newfilters, sheetName, TableNames, 
    group, PrimarySortIDHeadings, filessrc, BCatlookup, BoxList, BQAtablescombined, CalcList, DenomList, NumList, PlotList, 
    TablesList, tempPlotList, tidycalcframe, tidycalcframemelted, tidycalcframeperc, tidydataset, tidydatasetuse, tidydenomframe, 
-   tidydenomframemelted, tidynumframe, TotalList, i, j, k, TC, TCpicker, chartdatastring, chartnames, calcnames, BoxRowIDFilters, 
-   BCatOrder, chart_1_data, chart_2_data, chart_3_data, chartdatatotals, imgNum, wb, imgList, pathList, filesdir)
+   tidydenomframemelted, tidynumframe, TotalList, h, i, j, k, TC, TCpicker, chartdatastring, chartnames, calcnames, BoxRowIDFilters, 
+   BCatOrder, chart_1_data, chart_2_data, chart_3_data, chartdatatotals, imgNum, wb, imgList, pathList, filesdir, chartframeList)
 
 options(warn = oldw)
 
