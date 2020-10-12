@@ -3,18 +3,14 @@
 oldw <- getOption("warn")
 options(warn = -1)
 
-if (!require('tools')) {
-  install.packages('tools')
-  library('tools')
-}
+# if (!require('tools')) {
+#   install.packages('tools')
+#   library('tools')
+# }
 if (!require('ggplot2')) {
   install.packages('ggplot2')
   library('ggplot2')
 }
-# if (!require('scales')) {
-#   install.packages('scales')
-#   library('scales')
-# }
 if (!require('purrr')) {
   install.packages('purrr')
   library('purrr')
@@ -27,22 +23,9 @@ if (!require('tidyr')) {
   install.packages('tidyr')
   library('tidyr')
 }
-# if (!require('reshape2')) {
-#   install.packages('reshape2')
-#   library('reshape2')
-# }
-# if (!require('rlang')) {
-#   install.packages('rlang')
-#   library('rlang')
-# }
 if (!require('openxlsx')) {
   install.packages('openxlsx')
   library('openxlsx')
-}
-if (!require('phecharts')) {
-  install_git('https://gitlab.phe.gov.uk/packages/phecharts',
-              upgrade = "never")
-  library('phecharts')
 }
 
 DataExtractAll <- function (filename) {
@@ -171,6 +154,7 @@ pathList <- tidydataset %>%
          )) %>%
   select(-value, -rank)
 
+winDialog(type = "ok", "Please review the list of pathologists and update pathCode as desired [see work instructions for details.\n*** DO NOT ALTER 'Primary_Sort_Value' COLUMN ***")
 pathList <- edit(pathList)
 
 # adds a sheet to the workbook with the pathologist NBSS codes linked to the assigned pseudonyms
@@ -211,7 +195,9 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     left_join(pathList) %>%
     select(-Primary_Sort_Value) %>%
     rename(Primary_Sort_Value = pathCode) %>%
-    mutate(Primary_Sort_Value = replace_na(.$Primary_Sort_Value, "Total"))
+    mutate(Primary_Sort_Value = replace_na(.$Primary_Sort_Value, "Total")) %>%
+    group_by(across(-value)) %>%
+    summarise(value = sum(value), .groups = "drop") 
   
   BQAtablescombined <- TableGenerator(tidydatasetuse, Row.Identifier==9999, Primary_Sort_Value, Filename, Primary_Sort_Value, BCatDesc)
   BQAtablescombined <- left_join(data.frame("BCatDesc" = BCatOrder), BQAtablescombined)
@@ -297,7 +283,8 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
   
   TotalList <- list()
   for (k in TableNames) {
-    TotalList[[k]] <- bind_rows(mutate_all(TablesList[[k]], as.character), CalcList[[k]])
+    TotalList[[k]] <- bind_rows(mutate_all(TablesList[[k]], as.character), CalcList[[k]]) %>% 
+     select(where(~!any(is.na(.)))) # removes columns where any NA values exist (removes non-existant pathologists)
   }
   
   for (i in seq_along(TotalList)) {
@@ -350,8 +337,9 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     #creates data set for charts
     chart_data <- chartframeList[[TableNames[k]]]
     chart_data <- chart_data %>%
-      pivot_longer(cols = 2:ncol(.)) %>% 
-      mutate (value = as.numeric(value))
+      pivot_longer(cols = 2:ncol(.)) %>%
+      mutate (value = as.numeric(value)) 
+
     # removes pathologists who have <=5 in total row
     chartdatatotals <- chart_data %>%
       filter(BCatDesc == BCatDesc[1],
@@ -370,7 +358,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     ggplot(chart_1_data, aes(y=value, x = name, fill = BCatDesc)) +
       geom_bar(stat="identity", position = "stack") +
       #geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
-      theme_phe("phe") +
+      theme_minimal() +
       scale_fill_manual(name = "Category",
                         values = c("B5" = "#822433",
                                    "B4" = "#00B092",
@@ -386,7 +374,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
             axis.title.y = element_text(face = "bold", colour = "black", size = 14),
             legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.5, "cm"), 
             legend.text = element_text(size = 12)) + 
-      labs(title = paste0("BQA ",TCpicker[TC]," data by B category, shown by pathologist")) +
+      labs(title = paste0("BQA ",oldfilters[TC]," data by B category,\n shown by pathologist with >5 total cses")) +
       scale_y_continuous(name = "Percentage of total", breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
                          labels = c("100%", "80%", "60%", "40%", "20%", "0%"))
     ggsave(paste0("tmpPlot-",imgNum,".png"), width = 7, height = 5, units = "in")
@@ -409,9 +397,9 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     ggplot(chart_2_data, aes(y=value, x = name, fill = BCatDesc)) +
       geom_bar(stat="identity", position = "stack") +
       #geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
-      theme_phe("phe") +
+      theme_minimal() +
       scale_fill_manual(name = "Category",
-                        values = c("B5a" = #822433,
+                        values = c("B5a" = "#822433",
                                    "B5b" = "#00B092",
                                    "B5c" = "#002776")) +
       theme(axis.text.x = element_text(angle = 45, hjust = 0.95, size = 12),
@@ -423,7 +411,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
             axis.title.y = element_text(face = "bold", colour = "black", size = 14),
             legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.5, "cm"), 
             legend.text = element_text(size = 12)) + 
-      labs(title = paste0("BQA ",TCpicker[TC]," data by B5 sub-category category, shown by pathologist")) +
+      labs(title = paste0("BQA ",oldfilters[TC]," data by B5 sub-category category,\n shown by pathologist with >5 total cses")) +
       scale_y_continuous(name = "Percentage of total", breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
                          labels = c("100%", "80%", "60%", "40%", "20%", "0%"))
     ggsave(paste0("tmpPlot-",imgNum,".png"), width = 7, height = 5, units = "in")
@@ -445,9 +433,9 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     ggplot(chart_3_data, aes(y=value, x = name, fill = BCatDesc)) +
       geom_bar(stat="identity", position = "stack") +
       #geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
-      theme_phe("phe") +
+      theme_minimal() +
       scale_fill_manual(name = "Category",
-                        values = c("B3 with atypia" = #822433,
+                        values = c("B3 with atypia" = "#822433",
                                    "B3 without atypia" = "#00B092",
                                    "B3 with atypia not specified" = "#002776")) +
       theme(axis.text.x = element_text(angle = 45, hjust = 0.95, size = 12),
@@ -459,7 +447,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
             axis.title.y = element_text(face = "bold", colour = "black", size = 14),
             legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.5, "cm"), 
             legend.text = element_text(size = 12)) + 
-      labs(title = paste0("BQA ",TCpicker[TC]," data by B3 sub-category category, shown by pathologist")) +
+      labs(title = paste0("BQA ",oldfilters[TC]," data by B3 sub-category category,\n shown by pathologists with >5 total cses")) +
       scale_y_continuous(name = "Percentage of total", breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
                          labels = c("100%", "80%", "60%", "40%", "20%", "0%"))
     ggsave(paste0("tmpPlot-",imgNum,".png"), width = 7, height = 5, units = "in")
