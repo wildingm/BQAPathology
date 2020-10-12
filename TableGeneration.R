@@ -151,21 +151,14 @@ tidydataset <- tidydataset %>%
 tidydataset$value[is.na(tidydataset$value)] <- 0
 tidydataset$Tests.or.Clients..T.or.C. <- gsub(TRUE, "T", tidydataset$Tests.or.Clients..T.or.C.) # convert TRUE values into T string
 
-# ================================================================================================================
-# Pathologist pseudonymisation code
-
-pathListMaxFilename <- tidydataset %>%
-  filter(value == max(value))
+# Pathologist pseudonymisation code===============================================================================
 
 pathList <- tidydataset %>%
-  filter(Row.Identifier == 9999,
-         Tests.or.Clients..T.or.C. == "C",
-         BCategory == "Total",
-         Filename %in% pathListMaxFilename$Filename) %>%
   mutate(Primary_Sort_Value = case_when(
     Primary.Sort.ID == "P" ~ Primary_Sort_Value,
     Primary.Sort.ID == "TOT" ~ "TOT"
   )) %>%
+  select(Primary_Sort_Value, value) %>%
   group_by(Primary_Sort_Value) %>%
   summarise(value = max(value)) %>%
   arrange(desc(value), Primary_Sort_Value) %>%
@@ -182,25 +175,28 @@ pathList <- tidydataset %>%
 ### Would really like to make this a user interface option to enter user defined pseudonyms - this should allow grouping of data where pathologists
 ### have more than one code in the NBSS system - and allow consensus/arbitration/unknown pathologists to be grouped too
 
+# adds a sheet to the workbook with the pathologist NBSS codes linked to the assigned pseudonyms
 addWorksheet(wb, "Pathologist Codes")
 writeData(wb, 
           sheet = "Pathologist Codes", 
           pathList, 
-          rowNames = FALSE)
+          rowNames = FALSE) 
 
+# ===================================================================================================================
+# Need to deal with regrouping data if the same pseudonym is used for more than one pathologist code.
 
-# double up the loop to go through either tests/clients or the different categories.
+# ===================================================================================================================
 
-for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should handle cases where only C has been run
+for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should handle cases where only C has been run (there will only be 1 loop)
   
-  if (TCpicker[TC] == "C") {
+  if (TCpicker[TC] == "C") { # if the data is clients, sets row names up for clients
     BCatDesc <- c("Total number of clients", "Number of B1", "Number of B2", "Number of B3 with atypia not specified",
                   "Number of B3 with atypia", "Number of B3 without atypia", "Number of B3", "Number of B4", "Number of B5c", "Number of B5b",
                   "Number of B5a", "Number of B5")
     BCatOrder <- c("Total number of clients", "Number of B5", "Number of B4", "Number of B3", "Number of B2", "Number of B1", "Number of B5a",
                    "Number of B5b", "Number of B5c", "Number of B3 with atypia", "Number of B3 without atypia",
                    "Number of B3 with atypia not specified")
-  } else {
+  } else { # if the data is tests, sets row names up for tests
     BCatDesc <- c("Total number of tests", "Number of B1", "Number of B2", "Number of B3 with atypia not specified",
                   "Number of B3 with atypia", "Number of B3 without atypia", "Number of B3", "Number of B4", "Number of B5c", "Number of B5b",
                   "Number of B5a", "Number of B5")
@@ -211,7 +207,8 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
   
   BCatlookup <- data.frame(BCategory, BCatDesc)
   
-  tidydatasetuse <- tidydataset[tidydataset$Tests.or.Clients..T.or.C. == TCpicker[TC],] %>% 
+  tidydatasetuse <- tidydataset %>%
+    filter(Tests.or.Clients..T.or.C. == TCpicker[TC]) %>% 
     inner_join(BCatlookup) %>%
     left_join(pathList) %>%
     select(-Primary_Sort_Value) %>%
@@ -310,25 +307,28 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     NumList[[i]] <- NumList[[i]][names(TotalList[[i]])]
   }
   
-  #chartframeplot <- BQABarPlot(TotalList[[1]], 2:6, "BCatDesc", "B category", group)
+  # creates a list of dataframes per filename containing the proportion of the different B5 categories in place of the numbers of cases
+  chartframeList <- list()
+  for (h in seq_along(TotalList)) {
+    chartframe <- TotalList[[h]] 
+    for (i in c("Number of B5a", "Number of B5b", "Number of B5c")){
+      chartframe[chartframe$BCatDesc == i, 2:ncol(chartframe)] <-
+        as.list(as.character(as.numeric(chartframe[chartframe$BCatDesc == i, 2:ncol(chartframe)]) / 
+                               as.numeric(chartframe[chartframe$BCatDesc == "Number of B5", 2:ncol(chartframe)])))
+    }
+    for (i in c("Number of B3 with atypia", "Number of B3 without atypia", "Number of B3 with atypia not specified")){
+      chartframe[chartframe$BCatDesc==i, 2:ncol(chartframe)] <-
+        as.list(as.character(as.numeric(chartframe[chartframe$BCatDesc == i,2:ncol(chartframe)]) / 
+                               as.numeric(chartframe[chartframe$BCatDesc == "Number of B3", 2:ncol(chartframe)])))
+    }
+    for (i in c("Number of B5", "Number of B4", "Number of B3", "Number of B2", "Number of B1")) {
+      chartframe[chartframe$BCatDesc == i, 2:ncol(chartframe)] <-
+        as.list(as.character(as.numeric(chartframe[chartframe$BCatDesc == i,2:ncol(chartframe)]) / 
+                               as.numeric(chartframe[chartframe$BCatDesc == BCatDesc[1],2:ncol(chartframe)])))
+    }
+    chartframeList[[names(TotalList[h])]] <- chartframe
+  }
   
-  # creates a dataframe containing the proportion of the different B5 categories in place of the numbers of cases
-  chartframe <- TotalList[[1]] 
-  for (i in c("Number of B5a", "Number of B5b", "Number of B5c")){
-    chartframe[chartframe$BCatDesc == i, 2:ncol(chartframe)] <-
-      as.list(as.character(as.numeric(chartframe[chartframe$BCatDesc == i, 2:ncol(chartframe)]) / 
-                             as.numeric(chartframe[chartframe$BCatDesc == "Number of B5", 2:ncol(chartframe)])))
-  }
-  for (i in c("Number of B3 with atypia", "Number of B3 without atypia", "Number of B3 with atypia not specified")){
-    chartframe[chartframe$BCatDesc==i, 2:ncol(chartframe)] <-
-      as.list(as.character(as.numeric(chartframe[chartframe$BCatDesc == i,2:ncol(chartframe)]) / 
-                             as.numeric(chartframe[chartframe$BCatDesc == "Number of B3", 2:ncol(chartframe)])))
-  }
-  for (i in c("Number of B5", "Number of B4", "Number of B3", "Number of B2", "Number of B1")) {
-    chartframe[chartframe$BCatDesc == i, 2:ncol(chartframe)] <-
-      as.list(as.character(as.numeric(chartframe[chartframe$BCatDesc == i,2:ncol(chartframe)]) / 
-                             as.numeric(chartframe[chartframe$BCatDesc == BCatDesc[1],2:ncol(chartframe)])))
-  }
   
   # =========================================================================================================================================
   
@@ -350,7 +350,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
               rowNames = FALSE,
               withFilter = FALSE)
     #creates data set for charts
-    chart_data <- chartframe
+    chart_data <- chartframeList[[TableNames[k]]]
     chart_data <- chart_data %>%
       pivot_longer(cols = 2:ncol(.)) %>% 
       mutate (value = as.numeric(value))
@@ -371,7 +371,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     
     ggplot(chart_1_data, aes(y=value, x = name, fill = BCatDesc)) +
       geom_bar(stat="identity", position = "stack") +
-      #geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
+      geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
       theme_phe("phe") +
       scale_fill_manual(name = "Category",
                         values = c("B5" = brewer_phe()[1],
@@ -388,7 +388,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
             axis.title.y = element_text(face = "bold", colour = "black", size = 14),
             legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.5, "cm"), 
             legend.text = element_text(size = 12)) + 
-      #labs(title = paste("Proportion of", tolower(oldfilters[TC]), "broken down by", chartdatastring[j], "\n data displayed by", "pathologist"), x = "pathologist") +
+      labs(title = paste0("tmpPlot-",imgNum)) +
       scale_y_continuous(name = "Percentage of total", breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
                          labels = c("100%", "80%", "60%", "40%", "20%", "0%"))
     ggsave(paste0("tmpPlot-",imgNum,".png"), width = 7, height = 5, units = "in")
@@ -410,7 +410,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     
     ggplot(chart_2_data, aes(y=value, x = name, fill = BCatDesc)) +
       geom_bar(stat="identity", position = "stack") +
-      #geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
+      geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
       theme_phe("phe") +
       scale_fill_manual(name = "Category",
                         values = c("B5a" = brewer_phe()[1],
@@ -425,7 +425,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
             axis.title.y = element_text(face = "bold", colour = "black", size = 14),
             legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.5, "cm"), 
             legend.text = element_text(size = 12)) + 
-      #labs(title = paste("Proportion of", tolower(oldfilters[TC]), "broken down by", chartdatastring[j], "\n data displayed by", "pathologist"), x = "pathologist") +
+      labs(title = paste0("tmpPlot-",imgNum)) +
       scale_y_continuous(name = "Percentage of total", breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
                          labels = c("100%", "80%", "60%", "40%", "20%", "0%"))
     ggsave(paste0("tmpPlot-",imgNum,".png"), width = 7, height = 5, units = "in")
@@ -446,7 +446,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     
     ggplot(chart_3_data, aes(y=value, x = name, fill = BCatDesc)) +
       geom_bar(stat="identity", position = "stack") +
-      #geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
+      geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
       theme_phe("phe") +
       scale_fill_manual(name = "Category",
                         values = c("B3 with atypia" = brewer_phe()[1],
@@ -461,7 +461,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
             axis.title.y = element_text(face = "bold", colour = "black", size = 14),
             legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.5, "cm"), 
             legend.text = element_text(size = 12)) + 
-      #labs(title = paste("Proportion of", tolower(oldfilters[TC]), "broken down by", chartdatastring[j], "\n data displayed by", "pathologist"), x = "pathologist") +
+      labs(title = paste0("tmpPlot-",imgNum)) +
       scale_y_continuous(name = "Percentage of total", breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
                          labels = c("100%", "80%", "60%", "40%", "20%", "0%"))
     ggsave(paste0("tmpPlot-",imgNum,".png"), width = 7, height = 5, units = "in")
@@ -511,7 +511,7 @@ rm(subframe, common, subtractNumNames, subtractNum, calcDenomSumBoxes, calcNumSu
    group, PrimarySortIDHeadings, filessrc, BCatlookup, BoxList, BQAtablescombined, CalcList, DenomList, NumList, PlotList, 
    TablesList, tempPlotList, tidycalcframe, tidycalcframemelted, tidycalcframeperc, tidydataset, tidydatasetuse, tidydenomframe, 
    tidydenomframemelted, tidynumframe, TotalList, i, j, k, TC, TCpicker, chartdatastring, chartnames, calcnames, BoxRowIDFilters, 
-   BCatOrder, chart_1_data, chart_2_data, chart_3_data, chartdatatotals, imgNum, wb, imgList, pathList, pathListMaxFilename, filesdir)
+   BCatOrder, chart_1_data, chart_2_data, chart_3_data, chartdatatotals, imgNum, wb, imgList, pathList, filesdir)
 
 options(warn = oldw)
 
