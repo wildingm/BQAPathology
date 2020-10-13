@@ -251,7 +251,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
   tidydenomframemelted <- pivot_longer(tidydenomframe, 3:ncol(tidydenomframe), names_to = "variable", values_to = "denomvalue")
   tidycalcframeperc <-  tidycalcframe %>%
     pivot_longer(3:ncol(tidydenomframe), names_to = "variable") %>%
-    mutate(value = paste0(format(value *100, digits = 1),"%")) %>%
+    mutate(value = as.character(value)) %>%
     inner_join(tidydenomframemelted) %>%
     mutate(value = case_when(
       denomvalue == 0 ~ "No Cases",
@@ -331,6 +331,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
               x = TotalList[[k]],
               rowNames = FALSE,
               withFilter = FALSE)
+
     #creates data set for charts
     chart_data <- chartframeList[[TableNames[k]]]
     chart_data <- chart_data %>%
