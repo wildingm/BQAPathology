@@ -3,9 +3,9 @@
 oldw <- getOption("warn")
 options(warn = -1)
 
-# if(!"renv" %in% installed.packages()[,"Package"]) {
-#   install.packages("renv")
-# }
+if(!"renv" %in% installed.packages()[,"Package"]) {
+  install.packages("renv")
+}
 
 renv::restore()
 library('ggplot2')
@@ -377,7 +377,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
             axis.title.y = element_text(face = "bold", colour = "black", size = 14),
             legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.5, "cm"), 
             legend.text = element_text(size = 12)) + 
-      labs(title = paste0("BQA ",oldfilters[TC]," data by B category,\n shown by pathologist with >5 total cses")) +
+      labs(title = paste0("BQA ",oldfilters[TC]," data by B category,\n shown by pathologist with >5 total cases")) +
       scale_y_continuous(name = "Percentage of total", breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
                          labels = c("100%", "80%", "60%", "40%", "20%", "0%"))
     ggsave(paste0("tmpPlot-",imgNum,".png"), width = 7, height = 5, units = "in")
@@ -415,7 +415,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
             axis.title.y = element_text(face = "bold", colour = "black", size = 14),
             legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.5, "cm"), 
             legend.text = element_text(size = 12)) + 
-      labs(title = paste0("BQA ",oldfilters[TC]," data by B5 sub-category category,\n shown by pathologist with >5 total cses")) +
+      labs(title = paste0("BQA ",oldfilters[TC]," data by B5 sub-category category,\n shown by pathologist with >5 total cases")) +
       scale_y_continuous(name = "Percentage of total", breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
                          labels = c("100%", "80%", "60%", "40%", "20%", "0%"))
     ggsave(paste0("tmpPlot-",imgNum,".png"), width = 7, height = 5, units = "in")
@@ -452,7 +452,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
             axis.title.y = element_text(face = "bold", colour = "black", size = 14),
             legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.5, "cm"), 
             legend.text = element_text(size = 12)) + 
-      labs(title = paste0("BQA ",oldfilters[TC]," data by B3 sub-category category,\n shown by pathologists with >5 total cses")) +
+      labs(title = paste0("BQA ",oldfilters[TC]," data by B3 sub-category category,\n shown by pathologists with >5 total cases")) +
       scale_y_continuous(name = "Percentage of total", breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
                          labels = c("100%", "80%", "60%", "40%", "20%", "0%"))
     ggsave(paste0("tmpPlot-",imgNum,".png"), width = 7, height = 5, units = "in")
