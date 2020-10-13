@@ -3,6 +3,10 @@
 oldw <- getOption("warn")
 options(warn = -1)
 
+# if(!require(renv)) {
+#   install.packages("renv")
+# }
+
 renv::restore()
 library('ggplot2')
 library('purrr')
