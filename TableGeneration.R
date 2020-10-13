@@ -3,30 +3,12 @@
 oldw <- getOption("warn")
 options(warn = -1)
 
-# if (!require('tools')) {
-#   install.packages('tools')
-#   library('tools')
-# }
-if (!require('ggplot2')) {
-  install.packages('ggplot2')
-  library('ggplot2')
-}
-if (!require('purrr')) {
-  install.packages('purrr')
-  library('purrr')
-}
-if (!require('dplyr')) {
-  install.packages('dplyr')
-  library('dplyr')
-}
-if (!require('tidyr')) {
-  install.packages('tidyr')
-  library('tidyr')
-}
-if (!require('openxlsx')) {
-  install.packages('openxlsx')
-  library('openxlsx')
-}
+renv::restore()
+# library('ggplot2')
+# library('purrr')
+# library('dplyr')
+# library('tidyr')
+# library('openxlsx')
 
 DataExtractAll <- function (filename) {
   # Extracts breast screening pathology data from the specified filename so long as it is a BQA file extracted from NBSS as a CSV file
