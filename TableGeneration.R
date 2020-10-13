@@ -4,11 +4,11 @@ oldw <- getOption("warn")
 options(warn = -1)
 
 renv::restore()
-# library('ggplot2')
-# library('purrr')
-# library('dplyr')
-# library('tidyr')
-# library('openxlsx')
+library('ggplot2')
+library('purrr')
+library('dplyr')
+library('tidyr')
+library('openxlsx')
 
 DataExtractAll <- function (filename) {
   # Extracts breast screening pathology data from the specified filename so long as it is a BQA file extracted from NBSS as a CSV file
@@ -109,7 +109,7 @@ tidydataset <- mapply(cbind, tidydataset, "Filename"=TableNames, SIMPLIFY = F)
 tidydataset <- tidydataset %>%
   bind_rows() %>%
   select(-Total.Cases.Screened, -Total.Assessed, -Total.WBN.Performed, -Total.VAE.Performed) %>%
-  pivot_longer(cols = BCategory, names_to = "BCategory") %>%
+  pivot_longer(cols = all_of(BCategory), names_to = "BCategory") %>%
   filter(Table.Identifier..A..B.or.C.=="D")
 tidydataset$value[is.na(tidydataset$value)] <- 0
 tidydataset$Tests.or.Clients..T.or.C. <- gsub(TRUE, "T", tidydataset$Tests.or.Clients..T.or.C.) # convert TRUE values into T string
@@ -122,7 +122,7 @@ comp4BSIScheck <- tidydataset %>%
 
 if (grepl("*", comp4BSIScheck, fixed=T)) {
   rm(list = ls())
-  stop("Files selected include compile for BSIS output. Please run the code again and select only normal BQA output")
+  stop(winDialog(type = "ok", "Files selected include compile for BSIS output. Please run the code again and select only normal BQA output"))
 }
 
   
