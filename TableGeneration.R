@@ -350,9 +350,10 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     chart_1_data <- chart_data %>%
       filter(BCatDesc %in% c("B1","B2","B3","B4","B5")) %>%
       group_by(name) %>%
-      mutate(pos = cumsum(value) - value/2)
+      mutate(pos = cumsum(value) - value/2) %>%
+      transform(name = factor (name, levels = chartdatatotals$name))
     
-    ggplot(chart_1_data, aes(y=value, x = reorder(name, -value), fill = BCatDesc)) +
+    ggplot(chart_1_data, aes(y=value, x = name, fill = BCatDesc)) +
       geom_bar(stat="identity", position = "stack") +
       #geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
       theme_minimal() +
@@ -389,7 +390,8 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     chart_2_data <- chart_data %>%
       filter(BCatDesc %in% c("B5a","B5b","B5c")) %>%
       group_by(name) %>%
-      mutate(pos = cumsum(value) - value/2)
+      mutate(pos = cumsum(value) - value/2) %>%
+      transform(name = factor (name, levels = chartdatatotals$name))
     
     ggplot(chart_2_data, aes(y=value, x = name, fill = BCatDesc)) +
       geom_bar(stat="identity", position = "stack") +
@@ -425,7 +427,8 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     chart_3_data <- chart_data %>%
       filter(BCatDesc %in% c(c("B3 with atypia", "B3 without atypia", "B3 with atypia not specified"))) %>%
       group_by(name) %>%
-      mutate(pos = cumsum(value) - value/2)
+      mutate(pos = cumsum(value) - value/2) %>%
+      transform(name = factor (name, levels = chartdatatotals$name))
     
     ggplot(chart_3_data, aes(y=value, x = name, fill = BCatDesc)) +
       geom_bar(stat="identity", position = "stack") +
