@@ -34,11 +34,13 @@ BQACalcFunSum <- function(MeasureName, BoxNumbers) {
   #   A dataframe containing the number of cases that match the inputs
   temp <- data.frame()
   for (i in BoxNumbers) {
-    data <- melt(BoxList[[i]])
+    data <- pivot_longer(BoxList[[i]], col = 2:ncol(BoxList[[i]]), names_to = "variable")
     temp <- temp %>% bind_rows(data)
   }
   temp[is.na(temp)] <- 0 # changes NA values to 0
-  temp <- cbind(Measure = MeasureName, dcast(temp, Filename~variable, sum))
+  temp <- temp %>%
+    mutate(Measure = MeasureName) %>%
+    pivot_wider(id_cols = c(Measure, Filename), names_from = variable)
   temp
 }
 
