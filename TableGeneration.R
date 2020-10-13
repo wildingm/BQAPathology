@@ -3,7 +3,7 @@
 oldw <- getOption("warn")
 options(warn = -1)
 
-# if(!require(renv)) {
+# if(!"renv" %in% installed.packages()[,"Package"]) {
 #   install.packages("renv")
 # }
 
