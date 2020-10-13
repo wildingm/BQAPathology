@@ -110,7 +110,8 @@ imgNum <- 1
 imgList <- NULL
 
 ### extracts the filenames from filessrc
-TableNames <- file_path_sans_ext(basename(filessrc))
+TableNames <- basename(filessrc)
+TableNames <- gsub(pattern = "\\..[^\\.]*$", "", TableNames)
 
 # Uses openxlsx package to create a workbook and set fontsize and font
 wb <- createWorkbook()
@@ -126,10 +127,7 @@ tidydataset <- mapply(cbind, tidydataset, "Filename"=TableNames, SIMPLIFY = F)
 tidydataset <- tidydataset %>%
   bind_rows() %>%
   select(-Total.Cases.Screened, -Total.Assessed, -Total.WBN.Performed, -Total.VAE.Performed) %>%
-  
-  ### consider pivot longer for better readability
-  melt(id.vars = names(.)[c(1:which(colnames(.)=="Row.Identifier"), which(colnames(.)=="Filename"))],
-       variable.name = "BCategory") %>%
+  pivot_longer(cols = BCategory, names_to = "BCategory") %>%
   filter(Table.Identifier..A..B.or.C.=="D")
 tidydataset$value[is.na(tidydataset$value)] <- 0
 tidydataset$Tests.or.Clients..T.or.C. <- gsub(TRUE, "T", tidydataset$Tests.or.Clients..T.or.C.) # convert TRUE values into T string
@@ -140,7 +138,12 @@ comp4BSIScheck <- tidydataset %>%
   select(Primary_Sort_Value) %>%
   unique()
 
+if (grepl("*", comp4BSIScheck, fixed=T)) {
+  rm(list = ls())
+  stop("Files selected include compile for BSIS output. Please run the code again and select only normal BQA output")
+}
 
+  
 # Pathologist pseudonymisation code===============================================================================
 
 pathList <- tidydataset %>%
@@ -170,9 +173,6 @@ writeData(wb,
           sheet = "Pathologist Codes", 
           pathList, 
           rowNames = FALSE) 
-
-# ===================================================================================================================
-# Need to deal with regrouping data if the same pseudonym is used for more than one pathologist code.
 
 # ===================================================================================================================
 
@@ -499,12 +499,7 @@ saveWorkbook(wb, paste0(filesdir,"/SQAS BQA report generated_", Sys.Date(), ".xl
 
 ### removes unneeded temporary information from environment
 unlink(imgList)
-rm(subframe, common, subtractNumNames, subtractNum, calcDenomSumBoxes, calcNumSumBoxes, BCatDesc, BCategory, BoxCatIDFilters,
-   BoxIDVector, chartframe, chartrownums, chartrows, chart_data, chartframeplot, oldfilters, newfilters, sheetName, TableNames, 
-   group, PrimarySortIDHeadings, filessrc, BCatlookup, BoxList, BQAtablescombined, CalcList, DenomList, NumList, PlotList, 
-   TablesList, tempPlotList, tidycalcframe, tidycalcframemelted, tidycalcframeperc, tidydataset, tidydatasetuse, tidydenomframe, 
-   tidydenomframemelted, tidynumframe, TotalList, h, i, j, k, TC, TCpicker, chartdatastring, chartnames, calcnames, BoxRowIDFilters, 
-   BCatOrder, chart_1_data, chart_2_data, chart_3_data, chartdatatotals, imgNum, wb, imgList, pathList, filesdir, chartframeList)
+rm(list = ls())
 
 options(warn = oldw)
 
