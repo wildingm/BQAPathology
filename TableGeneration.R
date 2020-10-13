@@ -352,11 +352,11 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
       mutate(BCatDesc = gsub("Number of ", "", .$BCatDesc),
              name = gsub("V1", "Total", .$name)) # removes 'Number of ' tag on description column 
     
-    chart_1_data <- chart_data %>%
+    chart_1_data <- chart_data %>% #sets up chart 1 data
       filter(BCatDesc %in% c("B1","B2","B3","B4","B5")) %>%
       group_by(name) %>%
-      mutate(pos = cumsum(value) - value/2) %>%
-      transform(name = factor (name, levels = chartdatatotals$name))
+      mutate(pos = cumsum(value) - value/2) %>% # provides values for text if desired
+      transform(name = factor (name, levels = chartdatatotals$name)) # converts to factors for ordering the cars
     
     ggplot(chart_1_data, aes(y=value, x = name, fill = BCatDesc)) +
       geom_bar(stat="identity", position = "stack") +
@@ -373,7 +373,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
             panel.grid.major.x = element_blank(),
             panel.grid.major.y = element_line(size=.1, color="dark grey"),
             plot.title = element_text(face = "bold", colour = "black", size = 16,hjust = 0.5),
-            axis.title.x = element_text(face = "bold", colour = "black", size = 14),
+            axis.title.x = element_blank(),
             axis.title.y = element_text(face = "bold", colour = "black", size = 14),
             legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.5, "cm"), 
             legend.text = element_text(size = 12)) + 
@@ -411,7 +411,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
             panel.grid.major.x = element_blank(),
             panel.grid.major.y = element_line(size=.1, color="dark grey"),
             plot.title = element_text(face = "bold", colour = "black", size = 16,hjust = 0.5),
-            axis.title.x = element_text(face = "bold", colour = "black", size = 14),
+            axis.title.x = element_blank(),
             axis.title.y = element_text(face = "bold", colour = "black", size = 14),
             legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.5, "cm"), 
             legend.text = element_text(size = 12)) + 
@@ -448,7 +448,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
             panel.grid.major.x = element_blank(),
             panel.grid.major.y = element_line(size=.1, color="dark grey"),
             plot.title = element_text(face = "bold", colour = "black", size = 16,hjust = 0.5),
-            axis.title.x = element_text(face = "bold", colour = "black", size = 14),
+            axis.title.x = element_blank(),
             axis.title.y = element_text(face = "bold", colour = "black", size = 14),
             legend.title = element_blank(), legend.position = "top", legend.spacing.x = unit(0.5, "cm"), 
             legend.text = element_text(size = 12)) + 
@@ -493,9 +493,10 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
     }
 }
 
+# saves the workbook as a file in the folder where the data was selected
 saveWorkbook(wb, paste0(filesdir,"/SQAS BQA report generated_", Sys.Date(), ".xlsx"), overwrite = T)
 
-### removes unneeded temporary information from environment
+# cleans environment
 unlink(imgList)
 
 options(warn = oldw)
