@@ -134,6 +134,13 @@ tidydataset <- tidydataset %>%
 tidydataset$value[is.na(tidydataset$value)] <- 0
 tidydataset$Tests.or.Clients..T.or.C. <- gsub(TRUE, "T", tidydataset$Tests.or.Clients..T.or.C.) # convert TRUE values into T string
 
+# Check for compile for BSIS files ============================================================================
+
+comp4BSIScheck <- tidydataset %>%
+  select(Primary_Sort_Value) %>%
+  unique()
+
+
 # Pathologist pseudonymisation code===============================================================================
 
 pathList <- tidydataset %>%
