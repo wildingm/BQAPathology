@@ -35,12 +35,15 @@ BQACalcFunSum <- function(MeasureName, BoxNumbers) {
   temp <- data.frame()
   for (i in BoxNumbers) {
     data <- pivot_longer(BoxList[[i]], col = 2:ncol(BoxList[[i]]), names_to = "variable")
-    temp <- temp %>% bind_rows(data)
+    temp <- temp %>% 
+      bind_rows(data) %>%
+      mutate(value = replace_na(value, 0)) %>%
+      group_by(Filename, variable) %>%
+      summarise(value = sum(value), .groups = "drop")
   }
-  temp[is.na(temp)] <- 0 # changes NA values to 0
   temp <- temp %>%
     mutate(Measure = MeasureName) %>%
-    pivot_wider(id_cols = c(Measure, Filename), names_from = variable)
+    pivot_wider(id_cols = c(Measure, Filename), names_from = variable) 
   temp
 }
 
@@ -59,7 +62,7 @@ TableGenerator <- function (dataset, filters, colID, ...) {
   t <- dataset %>% 
     filter(!!enquo(filters)) %>%
     group_by(!!!groupcols) %>% 
-    summarise(value = sum(value, na.rm = T)) %>%
+    summarise(value = sum(value, na.rm = T), .groups = "drop") %>%
     spread(!!enquo(colID), value)
   t
 }
@@ -137,7 +140,7 @@ pathList <- tidydataset %>%
   )) %>%
   select(Primary_Sort_Value, value) %>%
   group_by(Primary_Sort_Value) %>%
-  summarise(value = max(value)) %>%
+  summarise(value = max(value), .groups = "drop") %>%
   arrange(desc(value), Primary_Sort_Value) %>%
   mutate(rank = 1:nrow(.)-1,
          pathCode = case_when(
@@ -245,15 +248,18 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
   tidycalcframe <- cbind(tidynumframe[,1:2], tidynumframe[, 3:ncol(tidynumframe)] / tidydenomframe[, 3:ncol(tidydenomframe)])
   tidycalcframe[is.na(tidycalcframe)] <- 0
   names(tidycalcframe)[names(tidycalcframe) == "Measure"] <- "BCatDesc"
-  tidydenomframemelted <- melt(tidydenomframe, id.vars = c("BCatDesc", "Filename"))
-  names(tidydenomframemelted)[names(tidydenomframemelted) == "value"] <- "denomvalue"
-  tidycalcframemelted <- melt(tidycalcframe, id.vars = c("BCatDesc", "Filename"))
-  tidycalcframemelted$value <- percent_format(accuracy = .01)(tidycalcframemelted$value)
-  tidycalcframemelted <- inner_join(tidycalcframemelted, tidydenomframemelted)
-  tidycalcframemelted$value[tidycalcframemelted$denomvalue == 0] <- "No Cases"
-  tidycalcframemelted <- select(tidycalcframemelted, -denomvalue)
-  tidycalcframeperc <- dcast(tidycalcframemelted, Filename + BCatDesc ~ variable, alue.var="value")
-  
+  tidydenomframemelted <- pivot_longer(tidydenomframe, 3:ncol(tidydenomframe), names_to = "variable", values_to = "denomvalue")
+  tidycalcframeperc <-  tidycalcframe %>%
+    pivot_longer(3:ncol(tidydenomframe), names_to = "variable") %>%
+    mutate(value = paste0(format(value *100, digits = 1),"%")) %>%
+    inner_join(tidydenomframemelted) %>%
+    mutate(value = case_when(
+      denomvalue == 0 ~ "No Cases",
+      denomvalue != 0 ~ value
+    )) %>%
+    select(-denomvalue) %>%
+    pivot_wider(values_from = value, names_from = variable, id_cols = c(Filename, BCatDesc))
+
   CalcList <- list()
   for (k in TableNames) {
     CalcList[[k]] <- as_tibble(tidycalcframeperc[tidycalcframeperc$Filename == k, c(2:ncol(tidycalcframeperc))])
@@ -346,7 +352,7 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
       group_by(name) %>%
       mutate(pos = cumsum(value) - value/2)
     
-    ggplot(chart_1_data, aes(y=value, x = name, fill = BCatDesc)) +
+    ggplot(chart_1_data, aes(y=value, x = reorder(name, -value), fill = BCatDesc)) +
       geom_bar(stat="identity", position = "stack") +
       #geom_text(aes(y = pos, label = format(value*100, digits = 1)), colour = "white") +
       theme_minimal() +
@@ -483,8 +489,7 @@ saveWorkbook(wb, paste0(filesdir,"/SQAS BQA report generated_", Sys.Date(), ".xl
 
 ### removes unneeded temporary information from environment
 unlink(imgList)
-rm(list = ls())
 
 options(warn = oldw)
 
-rm(oldw)
+rm(list = ls())
