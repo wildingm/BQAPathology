@@ -347,6 +347,8 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
       filter(BCatDesc == BCatDesc[1],
              value > 5)
     
+    chartwidth <- max(7, (1.5 + (nrow(chartdatatotals)*0.9)))
+    
     chart_data <- chart_data %>%
       filter(name %in% chartdatatotals$name) %>% # filters chart data to exclude pathologists without at least 5 outcomes
       mutate(BCatDesc = gsub("Number of ", "", .$BCatDesc),
@@ -380,11 +382,11 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
       labs(title = paste0("BQA ",oldfilters[TC]," data by B category,\n shown by pathologist with >5 total cases")) +
       scale_y_continuous(name = "Percentage of total", breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
                          labels = c("100%", "80%", "60%", "40%", "20%", "0%"))
-    ggsave(paste0("tmpPlot-",imgNum,".png"), width = 7, height = 5, units = "in")
+    ggsave(paste0("tmpPlot-",imgNum,".png"), width = chartwidth, height = 5, units = "in")
     insertImage(wb,
                 sheet = paste(sheetName, oldfilters[TC]),
                 paste0("tmpPlot-",imgNum,".png"),
-                width = 7, 
+                width = chartwidth, 
                 height = 5,
                 startCol = "A",
                 startRow = 26)
@@ -418,11 +420,11 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
       labs(title = paste0("BQA ",oldfilters[TC]," data by B5 sub-category category,\n shown by pathologist with >5 total cases")) +
       scale_y_continuous(name = "Percentage of total", breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
                          labels = c("100%", "80%", "60%", "40%", "20%", "0%"))
-    ggsave(paste0("tmpPlot-",imgNum,".png"), width = 7, height = 5, units = "in")
+    ggsave(paste0("tmpPlot-",imgNum,".png"), width = chartwidth, height = 5, units = "in")
     insertImage(wb,
                 sheet = paste(sheetName, oldfilters[TC]),
                 paste0("tmpPlot-",imgNum,".png"),
-                width = 7, 
+                width = chartwidth, 
                 height = 5,
                 startCol = "A",
                 startRow = 51)
@@ -455,11 +457,11 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
       labs(title = paste0("BQA ",oldfilters[TC]," data by B3 sub-category category,\n shown by pathologists with >5 total cases")) +
       scale_y_continuous(name = "Percentage of total", breaks = c(1.00,0.80,0.60,0.40,0.20,0.00),
                          labels = c("100%", "80%", "60%", "40%", "20%", "0%"))
-    ggsave(paste0("tmpPlot-",imgNum,".png"), width = 7, height = 5, units = "in")
+    ggsave(paste0("tmpPlot-",imgNum,".png"), width = chartwidth, height = 5, units = "in")
     insertImage(wb,
                 sheet = paste(sheetName, oldfilters[TC]),
                 paste0("tmpPlot-",imgNum,".png"),
-                width = 7, 
+                width = chartwidth, 
                 height = 5,
                 startCol = "A",
                 startRow = 76)
