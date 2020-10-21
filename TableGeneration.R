@@ -492,6 +492,10 @@ for (TC in 1:length(unique(tidydataset$Tests.or.Clients..T.or.C.))) { # should h
               startCol = 1, 
               startRow = 116, 
               rowNames = FALSE)    
+    setColWidths(wb,
+                 sheet = paste(sheetName, oldfilters[TC]),
+                 cols = "A",
+                 widths = "auto")
     }
 }
 
